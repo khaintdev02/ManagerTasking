@@ -16,8 +16,21 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'http://localhost:4173'
+];
+
+if (process.env.APP_URL) {
+  allowedOrigins.push(process.env.APP_URL);
+  // Also push without trailing slash if present
+  allowedOrigins.push(process.env.APP_URL.replace(/\/$/, ''));
+}
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:4173'],
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json());
