@@ -182,12 +182,27 @@ async function run(sql, params = []) {
   }
 }
 
+function normalizeKeys(row) {
+  if (!row) return null;
+  const mapped = { ...row };
+  if ('duetime' in mapped) { mapped.dueTime = mapped.duetime; delete mapped.duetime; }
+  if ('isdone' in mapped) { mapped.isDone = mapped.isdone; delete mapped.isdone; }
+  if ('lastnotifiedat' in mapped) { mapped.lastNotifiedAt = mapped.lastnotifiedat; delete mapped.lastnotifiedat; }
+  if ('notifytypes' in mapped) { mapped.notifyTypes = mapped.notifytypes; delete mapped.notifytypes; }
+  if ('userid' in mapped) { mapped.userId = mapped.userid; delete mapped.userid; }
+  if ('createdat' in mapped) { mapped.createdAt = mapped.createdat; delete mapped.createdat; }
+  if ('updatedat' in mapped) { mapped.updatedAt = mapped.updatedat; delete mapped.updatedat; }
+  if ('pushsubscription' in mapped) { mapped.pushSubscription = mapped.pushsubscription; delete mapped.pushsubscription; }
+  if ('useremail' in mapped) { mapped.userEmail = mapped.useremail; delete mapped.useremail; }
+  return mapped;
+}
+
 // Query all rows
 async function all(sql, params = []) {
   if (isPg) {
     const query = convertSql(sql);
     const res = await pgPool.query(query, params);
-    return res.rows;
+    return res.rows.map(normalizeKeys);
   } else {
     const stmt = db.prepare(sql);
     stmt.bind(params);
