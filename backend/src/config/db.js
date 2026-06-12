@@ -15,6 +15,8 @@ function convertSql(sql) {
   if (!isPg) return sql;
   // Convert datetime('now') to CURRENT_TIMESTAMP
   let converted = sql.replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
+  // If we are comparing dueTime to CURRENT_TIMESTAMP, cast dueTime to TIMESTAMPTZ
+  converted = converted.replace(/dueTime\s*<\s*CURRENT_TIMESTAMP/gi, 'CAST(dueTime AS TIMESTAMPTZ) < CURRENT_TIMESTAMP');
   // Convert SQLite placeholders (?) to PostgreSQL ($1, $2, ...)
   let index = 1;
   return converted.replace(/\?/g, () => `$${index++}`);
