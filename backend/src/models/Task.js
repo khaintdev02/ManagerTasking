@@ -50,6 +50,10 @@ const Task = sequelize.define('Task', {
       this.setDataValue('recipients', JSON.stringify(value || []));
     },
   },
+  notifyCycle: {
+    type: DataTypes.STRING,
+    defaultValue: 'none',
+  },
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,

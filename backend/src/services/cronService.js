@@ -20,7 +20,7 @@ async function processNotifications() {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
-    // Get pending tasks that are overdue or due within 3 days
+    // Get pending tasks that are overdue, due within 3 days, or have a notification cycle set
     const tasks = await db.all(`
       SELECT t.*, u.email as userEmail, u.pushSubscription
       FROM tasks t
@@ -29,6 +29,7 @@ async function processNotifications() {
         AND (
           t.dueTime < ?
           OR (t.dueTime >= ? AND t.dueTime <= ?)
+          OR t.notifyCycle IN ('daily', 'weekly', 'monthly')
         )
     `, [
       now.toISOString(),
@@ -39,7 +40,16 @@ async function processNotifications() {
     console.log(`[Cron] Checking ${tasks.length} tasks...`);
 
     for (const task of tasks) {
-      const interval = getRequiredInterval(task.dueTime);
+      let interval = getRequiredInterval(task.dueTime);
+
+      if (task.notifyCycle === 'daily') {
+        interval = 24 * 60 * 60 * 1000; // 24 hours
+      } else if (task.notifyCycle === 'weekly') {
+        interval = 7 * 24 * 60 * 60 * 1000; // 7 days
+      } else if (task.notifyCycle === 'monthly') {
+        interval = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
+
       if (interval === null) continue;
 
       // Check if enough time has passed

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { X, Calendar, Mail, Bell, Type, AlignLeft, Users } from 'lucide-react';
+import { X, Calendar, Mail, Bell, Type, AlignLeft, Users, Clock } from 'lucide-react';
 import EmailTagsInput from './EmailTagsInput';
 import toast from 'react-hot-toast';
 
@@ -10,6 +10,7 @@ const emptyForm = {
   dueTime: '',
   notifyTypes: [],
   recipients: [],
+  notifyCycle: 'none',
 };
 
 export default function TaskFormModal({ task, onClose, onSave }) {
@@ -26,6 +27,7 @@ export default function TaskFormModal({ task, onClose, onSave }) {
           : '',
         notifyTypes: task.notifyTypes || [],
         recipients: task.recipients || [],
+        notifyCycle: task.notifyCycle || 'none',
       });
     } else {
       setForm(emptyForm);
@@ -169,6 +171,28 @@ export default function TaskFormModal({ task, onClose, onSave }) {
             </div>
           </div>
 
+          {/* Notify Cycle */}
+          {form.notifyTypes.length > 0 && (
+            <div className="form-group" style={{ animation: 'slideUp 0.2s ease' }}>
+              <label className="form-label">
+                <Clock size={14} style={{ display: 'inline', marginRight: 6 }} />
+                Chu kỳ thông báo
+              </label>
+              <select
+                id="task-notify-cycle"
+                name="notifyCycle"
+                className="form-select"
+                value={form.notifyCycle || 'none'}
+                onChange={handleChange}
+              >
+                <option value="none">Không lặp lại (Mặc định)</option>
+                <option value="daily">Hằng ngày</option>
+                <option value="weekly">Hàng tuần</option>
+                <option value="monthly">Hàng tháng</option>
+              </select>
+            </div>
+          )}
+
           {/* Recipients - only show when email is checked */}
           {isEmailChecked && (
             <div className="form-group" style={{
@@ -204,12 +228,23 @@ export default function TaskFormModal({ task, onClose, onSave }) {
               color: 'var(--text-secondary)',
             }}>
               ℹ️ <strong>Lịch gửi thông báo:</strong>
-              <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
-                <li>Còn &gt; 3 ngày: Chưa gửi</li>
-                <li>Còn ≤ 3 ngày: Mỗi <strong>12 tiếng</strong></li>
-                <li>Còn ≤ 1 ngày: Mỗi <strong>8 tiếng</strong></li>
-                <li>Quá hạn: Mỗi <strong>4 tiếng</strong></li>
-              </ul>
+              {form.notifyCycle === 'daily' && (
+                <p style={{ marginTop: 6 }}>Thông báo sẽ được gửi định kỳ <strong>hằng ngày</strong> cho đến khi công việc hoàn thành.</p>
+              )}
+              {form.notifyCycle === 'weekly' && (
+                <p style={{ marginTop: 6 }}>Thông báo sẽ được gửi định kỳ <strong>hàng tuần</strong> cho đến khi công việc hoàn thành.</p>
+              )}
+              {form.notifyCycle === 'monthly' && (
+                <p style={{ marginTop: 6 }}>Thông báo sẽ được gửi định kỳ <strong>hàng tháng</strong> cho đến khi công việc hoàn thành.</p>
+              )}
+              {(!form.notifyCycle || form.notifyCycle === 'none') && (
+                <ul style={{ marginTop: 6, paddingLeft: 16, lineHeight: 2 }}>
+                  <li>Còn &gt; 3 ngày: Chưa gửi</li>
+                  <li>Còn ≤ 3 ngày: Mỗi <strong>12 tiếng</strong></li>
+                  <li>Còn ≤ 1 ngày: Mỗi <strong>8 tiếng</strong></li>
+                  <li>Quá hạn: Mỗi <strong>4 tiếng</strong></li>
+                </ul>
+              )}
             </div>
           )}
 

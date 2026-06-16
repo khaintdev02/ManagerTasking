@@ -482,6 +482,7 @@ input, textarea, select { font-family: inherit; }
 .badge-overdue { background: rgba(255, 71, 87, 0.15); color: var(--accent-danger); }
 .badge-email { background: rgba(30, 144, 255, 0.15); color: var(--accent-info); }
 .badge-push { background: rgba(108, 99, 255, 0.15); color: var(--accent-primary); }
+.badge-cycle { background: rgba(0, 212, 170, 0.15); color: var(--accent-secondary); }
 .badge-admin { background: rgba(255, 71, 87, 0.15); color: var(--accent-danger); }
 .badge-user { background: rgba(108, 99, 255, 0.15); color: var(--accent-primary); }
 
@@ -860,6 +861,12 @@ input, textarea, select { font-family: inherit; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: var(--spacing-lg);
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 /* ===== AUTH PAGES ===== */

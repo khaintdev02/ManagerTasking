@@ -5,18 +5,98 @@ import { vi } from 'date-fns/locale';
 import {
   Plus, Search, CheckCircle2, Circle, Edit2, Trash2,
   Calendar, Mail, Bell, Filter, AlertTriangle, Clock,
-  CheckSquare, BellRing
+  CheckSquare, BellRing, LayoutGrid, List
 } from 'lucide-react';
 import TaskFormModal from '../components/TaskFormModal';
 import toast from 'react-hot-toast';
 
-function TaskCard({ task, onEdit, onDelete, onToggle }) {
+function TaskCard({ task, onEdit, onDelete, onToggle, viewMode }) {
   const now = new Date();
   const due = new Date(task.dueTime);
   const isOverdue = !task.isDone && isBefore(due, now);
   const isSoon = !task.isDone && !isOverdue && isBefore(due, addDays(now, 3));
 
   const cardClass = `task-card ${task.isDone ? 'done' : isOverdue ? 'overdue' : isSoon ? 'soon' : ''}`;
+  const isList = viewMode === 'list';
+
+  if (isList) {
+    return (
+      <div className={cardClass} style={{ padding: '12px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+          {/* Left: Complete check + Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flex: 1, minWidth: '200px' }}>
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={() => onToggle(task)}
+              style={{ padding: 0, flexShrink: 0 }}
+              title={task.isDone ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}
+            >
+              {task.isDone
+                ? <CheckCircle2 size={20} color="var(--accent-success)" />
+                : <Circle size={20} color="var(--text-muted)" />
+              }
+            </button>
+            <h3 className={`task-title ${task.isDone ? 'done-title' : ''}`} style={{ fontSize: '0.95rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {task.title}
+            </h3>
+          </div>
+
+          {/* Middle: Due date & Badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <div className="task-due" style={{ margin: 0 }}>
+              <Calendar size={12} />
+              <span style={{ fontSize: '0.78rem', color: isOverdue ? 'var(--accent-danger)' : isSoon ? 'var(--accent-warning)' : 'var(--text-muted)' }}>
+                {format(due, "dd/MM/yyyy HH:mm")}
+              </span>
+            </div>
+
+            <div className="task-meta" style={{ margin: 0, gap: 4 }}>
+              <span className={`badge ${task.isDone ? 'badge-done' : isOverdue ? 'badge-overdue' : isSoon ? 'badge-pending' : ''}`} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                {task.isDone ? '✓ Xong' : isOverdue ? '⚠ Quá hạn' : isSoon ? '⏰ Sắp hạn' : '○ Chờ'}
+              </span>
+
+              {task.notifyTypes?.includes('email') && (
+                <span className="badge badge-email" style={{ padding: '2px 8px', fontSize: '0.7rem' }} title="Email"><Mail size={8} /></span>
+              )}
+              {task.notifyTypes?.includes('push') && (
+                <span className="badge badge-push" style={{ padding: '2px 8px', fontSize: '0.7rem' }} title="Push"><Bell size={8} /></span>
+              )}
+              {task.notifyCycle && task.notifyCycle !== 'none' && (
+                <span className="badge badge-cycle" style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                  <Clock size={8} /> {
+                    task.notifyCycle === 'daily' ? 'Ngày' :
+                    task.notifyCycle === 'weekly' ? 'Tuần' :
+                    task.notifyCycle === 'monthly' ? 'Tháng' :
+                    task.notifyCycle
+                  }
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="task-actions" style={{ opacity: 1, gap: 2, position: 'static' }}>
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={() => onEdit(task)}
+              title="Chỉnh sửa"
+              style={{ padding: 4 }}
+            >
+              <Edit2 size={14} />
+            </button>
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={() => onDelete(task)}
+              title="Xóa"
+              style={{ color: 'var(--accent-danger)', padding: 4 }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cardClass}>
@@ -73,6 +153,16 @@ function TaskCard({ task, onEdit, onDelete, onToggle }) {
         {task.notifyTypes?.includes('push') && (
           <span className="badge badge-push"><Bell size={10} /> Push</span>
         )}
+        {task.notifyCycle && task.notifyCycle !== 'none' && (
+          <span className="badge badge-cycle">
+            <Clock size={10} /> {
+              task.notifyCycle === 'daily' ? 'Hằng ngày' :
+              task.notifyCycle === 'weekly' ? 'Hàng tuần' :
+              task.notifyCycle === 'monthly' ? 'Hàng tháng' :
+              task.notifyCycle
+            }
+          </span>
+        )}
       </div>
 
       <div className="task-due">
@@ -110,6 +200,11 @@ export default function TasksPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('taskViewMode') || 'grid');
+
+  useEffect(() => {
+    localStorage.setItem('taskViewMode', viewMode);
+  }, [viewMode]);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -298,16 +393,29 @@ export default function TasksPage() {
           ))}
         </div>
 
-        <div className="search-box">
-          <Search size={16} />
-          <input
-            id="task-search"
-            type="text"
-            className="search-input"
-            placeholder="Tìm kiếm..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center' }}>
+          <div className="search-box">
+            <Search size={16} />
+            <input
+              id="task-search"
+              type="text"
+              className="search-input"
+              placeholder="Tìm kiếm..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+
+          <button
+            id="view-mode-toggle"
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
+            title={viewMode === 'grid' ? 'Hiển thị dạng danh sách' : 'Hiển thị dạng lưới'}
+            style={{ height: 38, width: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+          >
+            {viewMode === 'grid' ? <List size={18} /> : <LayoutGrid size={18} />}
+          </button>
         </div>
       </div>
 
@@ -332,7 +440,7 @@ export default function TasksPage() {
           )}
         </div>
       ) : (
-        <div className="tasks-grid">
+        <div className={viewMode === 'grid' ? 'tasks-grid' : 'tasks-list'}>
           {tasks.map(task => (
             <TaskCard
               key={task.id}
@@ -340,6 +448,7 @@ export default function TasksPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onToggle={handleToggle}
+              viewMode={viewMode}
             />
           ))}
         </div>

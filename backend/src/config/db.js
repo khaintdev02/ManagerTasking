@@ -53,11 +53,19 @@ async function getDb() {
         lastNotifiedAt TEXT,
         notifyTypes TEXT NOT NULL DEFAULT '[]',
         recipients TEXT NOT NULL DEFAULT '[]',
+        notifyCycle TEXT NOT NULL DEFAULT 'none',
         userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+      await run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
+      console.log('[DB] Added notifyCycle column to tasks table (Postgres)');
+    } catch (e) {
+      // Ignore if column already exists
+    }
 
     console.log('[DB] Connected and initialized PostgreSQL database via Neon');
 
@@ -122,12 +130,20 @@ async function getDb() {
         lastNotifiedAt TEXT,
         notifyTypes TEXT NOT NULL DEFAULT '[]',
         recipients TEXT NOT NULL DEFAULT '[]',
+        notifyCycle TEXT NOT NULL DEFAULT 'none',
         userId INTEGER NOT NULL,
         createdAt TEXT DEFAULT (datetime('now')),
         updatedAt TEXT DEFAULT (datetime('now')),
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
+
+    try {
+      db.run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
+      console.log('[DB] Added notifyCycle column to tasks table (SQLite)');
+    } catch (e) {
+      // Ignore if column already exists
+    }
 
     persist();
     console.log('[DB] SQLite (sql.js) initialized at', DB_PATH);
@@ -191,6 +207,7 @@ function normalizeKeys(row) {
   if ('isdone' in mapped) { mapped.isDone = mapped.isdone; delete mapped.isdone; }
   if ('lastnotifiedat' in mapped) { mapped.lastNotifiedAt = mapped.lastnotifiedat; delete mapped.lastnotifiedat; }
   if ('notifytypes' in mapped) { mapped.notifyTypes = mapped.notifytypes; delete mapped.notifytypes; }
+  if ('notifycycle' in mapped) { mapped.notifyCycle = mapped.notifycycle; delete mapped.notifycycle; }
   if ('userid' in mapped) { mapped.userId = mapped.userid; delete mapped.userid; }
   if ('createdat' in mapped) { mapped.createdAt = mapped.createdat; delete mapped.createdat; }
   if ('updatedat' in mapped) { mapped.updatedAt = mapped.updatedat; delete mapped.updatedat; }

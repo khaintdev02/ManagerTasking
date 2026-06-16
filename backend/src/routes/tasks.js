@@ -16,6 +16,7 @@ function parseTask(task) {
     isDone: task.isDone === 1 || task.isDone === true,
     notifyTypes: JSON.parse(task.notifyTypes || '[]'),
     recipients: JSON.parse(task.recipients || '[]'),
+    notifyCycle: task.notifyCycle || 'none',
   };
 }
 
@@ -67,20 +68,21 @@ router.get('/:id', async (req, res) => {
 // POST /api/tasks
 router.post('/', async (req, res) => {
   try {
-    const { title, description, dueTime, notifyTypes, recipients } = req.body;
+    const { title, description, dueTime, notifyTypes, recipients, notifyCycle } = req.body;
     if (!title || !dueTime) {
       return res.status(400).json({ error: 'Title and dueTime are required' });
     }
 
     await db.run(
-      `INSERT INTO tasks (title, description, dueTime, notifyTypes, recipients, userId, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      `INSERT INTO tasks (title, description, dueTime, notifyTypes, recipients, notifyCycle, userId, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       [
         title,
         description || null,
         new Date(dueTime).toISOString(),
         JSON.stringify(notifyTypes || []),
         JSON.stringify(recipients || []),
+        notifyCycle || 'none',
         req.user.id,
       ]
     );
@@ -100,7 +102,7 @@ router.put('/:id', async (req, res) => {
     const existing = await db.get('SELECT * FROM tasks WHERE id = ? AND userId = ?', [req.params.id, req.user.id]);
     if (!existing) return res.status(404).json({ error: 'Task not found' });
 
-    const { title, description, dueTime, notifyTypes, recipients, isDone } = req.body;
+    const { title, description, dueTime, notifyTypes, recipients, isDone, notifyCycle } = req.body;
 
     await db.run(
       `UPDATE tasks SET
@@ -110,6 +112,7 @@ router.put('/:id', async (req, res) => {
         notifyTypes = ?,
         recipients = ?,
         isDone = ?,
+        notifyCycle = ?,
         updatedAt = datetime('now')
        WHERE id = ? AND userId = ?`,
       [
@@ -119,6 +122,7 @@ router.put('/:id', async (req, res) => {
         JSON.stringify(notifyTypes ?? JSON.parse(existing.notifyTypes || '[]')),
         JSON.stringify(recipients ?? JSON.parse(existing.recipients || '[]')),
         isDone !== undefined ? (isDone ? 1 : 0) : existing.isDone,
+        notifyCycle ?? existing.notifyCycle ?? 'none',
         req.params.id,
         req.user.id,
       ]
