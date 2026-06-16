@@ -58,13 +58,13 @@ export default function App() {
           position="top-right"
           toastOptions={{
             style: {
-              background: '#161b27',
-              color: '#e8eaf6',
-              border: '1px solid #1e2540',
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
               borderRadius: '10px',
             },
-            success: { iconTheme: { primary: '#2ed573', secondary: '#0a0b0f' } },
-            error: { iconTheme: { primary: '#ff4757', secondary: '#0a0b0f' } },
+            success: { iconTheme: { primary: '#2ed573', secondary: 'var(--bg-primary)' } },
+            error: { iconTheme: { primary: '#ff4757', secondary: 'var(--bg-primary)' } },
           }}
         />
       </BrowserRouter>

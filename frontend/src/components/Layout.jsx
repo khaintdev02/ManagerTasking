@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, CheckSquare, Shield, LogOut,
-  Bell, Menu, X, ChevronRight, User
+  Bell, Menu, X, ChevronRight, User, Sun, Moon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,16 @@ export default function Layout() {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(t => t === 'dark' ? 'light' : 'dark');
+  };
 
   const handleLogout = () => {
     logout();
@@ -35,11 +45,21 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 'var(--spacing-md)' }}>
           <h1>
             <CheckSquare size={22} />
             TaskManager
           </h1>
+          <button
+            id="theme-toggle-desktop"
+            type="button"
+            className="btn btn-ghost btn-icon"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+            style={{ padding: 6, color: 'var(--text-secondary)' }}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -117,7 +137,16 @@ export default function Layout() {
             <Menu size={20} />
           </button>
           <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>TaskManager</span>
-          <div style={{ width: 36 }} />
+          <button
+            id="theme-toggle-mobile"
+            type="button"
+            className="btn btn-ghost btn-icon"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+            style={{ padding: 6, color: 'var(--text-secondary)' }}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </div>
 
         <div className="page-container">
