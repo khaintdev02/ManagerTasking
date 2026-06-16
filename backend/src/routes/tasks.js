@@ -75,7 +75,7 @@ router.post('/', async (req, res) => {
 
     await db.run(
       `INSERT INTO tasks (title, description, dueTime, notifyTypes, recipients, notifyCycle, userId, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       [
         title,
         description || null,
