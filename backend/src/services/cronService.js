@@ -3,7 +3,17 @@ const db = require('../config/db');
 const { sendTaskReminderEmail } = require('./emailService');
 const { sendPushNotification } = require('./pushService');
 
+function getRequiredInterval(dueTimeStr) {
+  const now = new Date();
+  const dueTime = new Date(dueTimeStr);
+  const diffMs = dueTime - now;
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
+  if (diffMs < 0) return 4 * 60 * 60 * 1000;        // Overdue: 4h
+  if (diffDays <= 1) return 8 * 60 * 60 * 1000;     // ≤1 day: 8h
+  if (diffDays <= 3) return 12 * 60 * 60 * 1000;    // ≤3 days: 12h
+  return null; // >3 days: no notification
+}
 
 async function processNotifications() {
   try {
@@ -29,12 +39,21 @@ async function processNotifications() {
 
     for (const task of tasks) {
       if (task.notifyCycle === 'none') {
-        // Non-recurring tasks: only notify once when the due time is reached/passed
-        if (now < new Date(task.dueTime)) {
-          continue;
-        }
+        // Non-recurring tasks: use the standard reminder intervals (4h overdue, 8h soon, 12h pending)
+        const interval = getRequiredInterval(task.dueTime);
+        if (interval === null) continue;
+
         if (task.lastNotifiedAt) {
-          continue; // Already notified once
+          const lastNotified = new Date(task.lastNotifiedAt);
+          const dueTime = new Date(task.dueTime);
+          
+          // If it transitioned to overdue since the last notification, notify immediately
+          const transitionedToOverdue = (lastNotified < dueTime && now >= dueTime);
+
+          if (!transitionedToOverdue) {
+            const timeSinceLast = now - lastNotified;
+            if (timeSinceLast < interval) continue;
+          }
         }
       } else {
         // Cyclic reminders: do not send if the initial due time is in the future
