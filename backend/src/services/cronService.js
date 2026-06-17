@@ -3,17 +3,7 @@ const db = require('../config/db');
 const { sendTaskReminderEmail } = require('./emailService');
 const { sendPushNotification } = require('./pushService');
 
-function getRequiredInterval(dueTimeStr) {
-  const now = new Date();
-  const dueTime = new Date(dueTimeStr);
-  const diffMs = dueTime - now;
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
-  if (diffMs < 0) return 4 * 60 * 60 * 1000;        // Overdue: 4h
-  if (diffDays <= 1) return 8 * 60 * 60 * 1000;     // ≤1 day: 8h
-  if (diffDays <= 3) return 12 * 60 * 60 * 1000;    // ≤3 days: 12h
-  return null; // >3 days: no notification
-}
 
 async function processNotifications() {
   try {
@@ -37,38 +27,35 @@ async function processNotifications() {
       threeDaysLater.toISOString(),
     ]);
 
-    console.log(`[Cron] Checking ${tasks.length} tasks...`);
-
     for (const task of tasks) {
-      // For cyclic reminders, do not send if the initial due time is in the future
-      if (task.notifyCycle === 'daily' || task.notifyCycle === 'weekly' || task.notifyCycle === 'monthly') {
+      if (task.notifyCycle === 'none') {
+        // Non-recurring tasks: only notify once when the due time is reached/passed
         if (now < new Date(task.dueTime)) {
           continue;
         }
-      }
+        if (task.lastNotifiedAt) {
+          continue; // Already notified once
+        }
+      } else {
+        // Cyclic reminders: do not send if the initial due time is in the future
+        if (now < new Date(task.dueTime)) {
+          continue;
+        }
 
-      let interval = getRequiredInterval(task.dueTime);
+        let interval = null;
+        if (task.notifyCycle === 'daily') {
+          interval = 24 * 60 * 60 * 1000; // 24 hours
+        } else if (task.notifyCycle === 'weekly') {
+          interval = 7 * 24 * 60 * 60 * 1000; // 7 days
+        } else if (task.notifyCycle === 'monthly') {
+          interval = 30 * 24 * 60 * 60 * 1000; // 30 days
+        }
 
-      if (task.notifyCycle === 'daily') {
-        interval = 24 * 60 * 60 * 1000; // 24 hours
-      } else if (task.notifyCycle === 'weekly') {
-        interval = 7 * 24 * 60 * 60 * 1000; // 7 days
-      } else if (task.notifyCycle === 'monthly') {
-        interval = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
+        if (interval === null) continue;
 
-      if (interval === null) continue;
-
-      // Check if enough time has passed
-      if (task.lastNotifiedAt) {
-        const lastNotified = new Date(task.lastNotifiedAt);
-        const dueTime = new Date(task.dueTime);
-        
-        // If the task transitioned to overdue since the last notification,
-        // we bypass the interval block to notify immediately about the overdue status.
-        const transitionedToOverdue = (lastNotified < dueTime && now >= dueTime);
-
-        if (!transitionedToOverdue) {
+        // Check if enough time has passed since the last cyclic notification
+        if (task.lastNotifiedAt) {
+          const lastNotified = new Date(task.lastNotifiedAt);
           const timeSinceLast = now - lastNotified;
           if (timeSinceLast < interval) continue;
         }
