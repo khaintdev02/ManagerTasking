@@ -21,10 +21,10 @@ function getTransporter() {
  * @param {Object} task - Task object
  */
 async function sendTaskReminderEmail(recipients, task) {
-  if (!recipients || recipients.length === 0) return;
+  if (!recipients || recipients.length === 0) return false;
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn('[Email] EMAIL_USER or EMAIL_PASS not configured, skipping email.');
-    return;
+    return false;
   }
 
   const dueDate = new Date(task.dueTime);
@@ -148,8 +148,10 @@ async function sendTaskReminderEmail(recipients, task) {
       html: htmlContent,
     });
     console.log(`[Email] ✅ Sent reminder for "${task.title}" → ${recipients.join(', ')}`);
+    return true;
   } catch (err) {
     console.error(`[Email] ❌ Failed for "${task.title}":`, err.message);
+    return false;
   }
 }
 

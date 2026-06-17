@@ -19,13 +19,13 @@ function initWebPush() {
  * @param {Object} task - Task object
  */
 async function sendPushNotification(subscription, task) {
-  if (!subscription) return;
+  if (!subscription) return false;
 
   initWebPush();
 
   if (!initialized) {
     console.warn('[Push] VAPID keys not configured, skipping push notification.');
-    return;
+    return false;
   }
 
   const dueDate = new Date(task.dueTime);
@@ -50,12 +50,14 @@ async function sendPushNotification(subscription, task) {
   try {
     await webpush.sendNotification(subscription, payload);
     console.log(`[Push] Sent notification for task "${task.title}"`);
+    return true;
   } catch (err) {
     console.error(`[Push] Failed for task "${task.title}":`, err.message);
     // If subscription expired/invalid, return error so caller can clean up
     if (err.statusCode === 410) {
       return { expired: true };
     }
+    return false;
   }
 }
 

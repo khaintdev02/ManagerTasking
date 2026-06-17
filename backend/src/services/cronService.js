@@ -40,6 +40,13 @@ async function processNotifications() {
     console.log(`[Cron] Checking ${tasks.length} tasks...`);
 
     for (const task of tasks) {
+      // For cyclic reminders, do not send if the initial due time is in the future
+      if (task.notifyCycle === 'daily' || task.notifyCycle === 'weekly' || task.notifyCycle === 'monthly') {
+        if (now < new Date(task.dueTime)) {
+          continue;
+        }
+      }
+
       let interval = getRequiredInterval(task.dueTime);
 
       if (task.notifyCycle === 'daily') {
@@ -64,8 +71,8 @@ async function processNotifications() {
 
       // Email notification
       if (notifyTypes.includes('email') && recipients.length > 0) {
-        await sendTaskReminderEmail(recipients, task);
-        notified = true;
+        const success = await sendTaskReminderEmail(recipients, task);
+        if (success) notified = true;
       }
 
       // Push notification
@@ -73,10 +80,11 @@ async function processNotifications() {
         try {
           const sub = JSON.parse(task.pushSubscription);
           const result = await sendPushNotification(sub, task);
-          if (result && result.expired) {
+          if (result === true) {
+            notified = true;
+          } else if (result && result.expired) {
             await db.run("UPDATE users SET pushSubscription = NULL WHERE id = ?", [task.userId]);
           }
-          notified = true;
         } catch (e) {
           console.error('[Cron] Push parse error:', e);
         }
