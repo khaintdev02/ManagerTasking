@@ -138,7 +138,7 @@ async function sendTaskReminderEmail(recipients, task) {
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;border-radius:10px;border:1px solid #1e2540;overflow:hidden;margin-bottom:28px;">
                 <tr style="border-bottom:1px solid #1e2540;">
                   <td style="padding:14px 20px;color:#8892a4;font-size:13px;width:130px;">📅 Deadline</td>
-                  <td style="padding:14px 20px;color:#e8eaf6;font-size:14px;font-weight:600;">${dueDate.toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short' })}</td>
+                  <td style="padding:14px 20px;color:#e8eaf6;font-size:14px;font-weight:600;">${dueDate.toLocaleString('vi-VN', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' })}</td>
                 </tr>
                 <tr style="border-bottom:1px solid #1e2540;">
                   <td style="padding:14px 20px;color:#8892a4;font-size:13px;">⏱ Thời gian</td>
