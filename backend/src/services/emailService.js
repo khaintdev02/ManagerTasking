@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 let transporter = null;
 
@@ -20,6 +21,53 @@ function getTransporter() {
   return transporter;
 }
 
+function sendViaBrevo(recipients, subject, htmlContent) {
+  return new Promise((resolve) => {
+    const data = JSON.stringify({
+      sender: {
+        name: "Task Manager 📋",
+        email: process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_USER
+      },
+      to: recipients.map(email => ({ email })),
+      subject: subject,
+      htmlContent: htmlContent
+    });
+
+    const options = {
+      hostname: 'api.brevo.com',
+      port: 443,
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(true);
+        } else {
+          console.error('[Brevo API] Failed with status:', res.statusCode, body);
+          resolve(false);
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error('[Brevo API] Connection error:', err.message);
+      resolve(false);
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
+
 /**
  * Send task reminder email to multiple recipients
  * @param {string[]} recipients - Array of email addresses
@@ -27,10 +75,6 @@ function getTransporter() {
  */
 async function sendTaskReminderEmail(recipients, task) {
   if (!recipients || recipients.length === 0) return false;
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('[Email] EMAIL_USER or EMAIL_PASS not configured, skipping email.');
-    return false;
-  }
 
   const dueDate = new Date(task.dueTime);
   const now = new Date();
@@ -145,17 +189,35 @@ async function sendTaskReminderEmail(recipients, task) {
 </html>
   `;
 
+  const subject = `${isOverdue ? '⚠️ [QUÁ HẠN]' : '⏰ [Nhắc nhở]'} ${task.title}`;
+
+  // If Brevo API is configured, use it (recommended for Render to bypass SMTP blocking)
+  if (process.env.BREVO_API_KEY) {
+    const success = await sendViaBrevo(recipients, subject, htmlContent);
+    if (success) {
+      console.log(`[Email] ✅ Sent reminder (Brevo API) for "${task.title}" → ${recipients.join(', ')}`);
+      return true;
+    }
+    return false;
+  }
+
+  // Fallback to SMTP
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('[Email] Neither BREVO_API_KEY nor SMTP credentials configured, skipping email.');
+    return false;
+  }
+
   try {
     await getTransporter().sendMail({
       from: `"Task Manager 📋" <${process.env.EMAIL_USER}>`,
       to: recipients.join(', '),
-      subject: `${isOverdue ? '⚠️ [QUÁ HẠN]' : '⏰ [Nhắc nhở]'} ${task.title}`,
+      subject: subject,
       html: htmlContent,
     });
-    console.log(`[Email] ✅ Sent reminder for "${task.title}" → ${recipients.join(', ')}`);
+    console.log(`[Email] ✅ Sent reminder (SMTP) for "${task.title}" → ${recipients.join(', ')}`);
     return true;
   } catch (err) {
-    console.error(`[Email] ❌ Failed for "${task.title}":`, err.message);
+    console.error(`[Email] ❌ Failed (SMTP) for "${task.title}":`, err.message);
     return false;
   }
 }
