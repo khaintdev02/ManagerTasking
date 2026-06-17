@@ -104,6 +104,15 @@ router.put('/:id', async (req, res) => {
 
     const { title, description, dueTime, notifyTypes, recipients, isDone, notifyCycle } = req.body;
 
+    let lastNotifiedAt = existing.lastNotifiedAt;
+    const dueTimeChanged = dueTime && new Date(dueTime).toISOString() !== new Date(existing.dueTime).toISOString();
+    const notifyCycleChanged = notifyCycle !== undefined && notifyCycle !== existing.notifyCycle;
+    const reopened = isDone !== undefined && !isDone && existing.isDone;
+
+    if (dueTimeChanged || notifyCycleChanged || reopened) {
+      lastNotifiedAt = null;
+    }
+
     await db.run(
       `UPDATE tasks SET
         title = ?,
@@ -113,6 +122,7 @@ router.put('/:id', async (req, res) => {
         recipients = ?,
         isDone = ?,
         notifyCycle = ?,
+        lastNotifiedAt = ?,
         updatedAt = datetime('now')
        WHERE id = ? AND userId = ?`,
       [
@@ -123,6 +133,7 @@ router.put('/:id', async (req, res) => {
         JSON.stringify(recipients ?? JSON.parse(existing.recipients || '[]')),
         isDone !== undefined ? (isDone ? 1 : 0) : existing.isDone,
         notifyCycle ?? existing.notifyCycle ?? 'none',
+        lastNotifiedAt,
         req.params.id,
         req.user.id,
       ]
@@ -143,7 +154,10 @@ router.patch('/:id/complete', async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Task not found' });
 
     const newDone = existing.isDone ? 0 : 1;
-    await db.run("UPDATE tasks SET isDone = ?, updatedAt = datetime('now') WHERE id = ?", [newDone, req.params.id]);
+    await db.run(
+      "UPDATE tasks SET isDone = ?, lastNotifiedAt = NULL, updatedAt = datetime('now') WHERE id = ?",
+      [newDone, req.params.id]
+    );
 
     const task = await db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     res.json(parseTask(task));
