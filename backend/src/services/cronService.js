@@ -61,8 +61,17 @@ async function processNotifications() {
 
       // Check if enough time has passed
       if (task.lastNotifiedAt) {
-        const timeSinceLast = now - new Date(task.lastNotifiedAt);
-        if (timeSinceLast < interval) continue;
+        const lastNotified = new Date(task.lastNotifiedAt);
+        const dueTime = new Date(task.dueTime);
+        
+        // If the task transitioned to overdue since the last notification,
+        // we bypass the interval block to notify immediately about the overdue status.
+        const transitionedToOverdue = (lastNotified < dueTime && now >= dueTime);
+
+        if (!transitionedToOverdue) {
+          const timeSinceLast = now - lastNotified;
+          if (timeSinceLast < interval) continue;
+        }
       }
 
       const notifyTypes = JSON.parse(task.notifyTypes || '[]');
