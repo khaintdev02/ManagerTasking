@@ -57,7 +57,8 @@ async function processNotifications() {
         }
       } else {
         // Cyclic reminders: do not send if the initial due time is in the future
-        if (now < new Date(task.dueTime)) {
+        const dueTime = new Date(task.dueTime);
+        if (now < dueTime) {
           continue;
         }
 
@@ -75,8 +76,14 @@ async function processNotifications() {
         // Check if enough time has passed since the last cyclic notification
         if (task.lastNotifiedAt) {
           const lastNotified = new Date(task.lastNotifiedAt);
-          const timeSinceLast = now - lastNotified;
-          if (timeSinceLast < interval) continue;
+          
+          // If it transitioned to due/overdue since the last notification, notify immediately
+          const transitionedToDue = (lastNotified < dueTime && now >= dueTime);
+
+          if (!transitionedToDue) {
+            const timeSinceLast = now - lastNotified;
+            if (timeSinceLast < interval) continue;
+          }
         }
       }
 
