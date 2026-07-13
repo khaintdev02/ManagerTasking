@@ -119,11 +119,32 @@ async function processNotifications() {
           types: notifyTypes,
           recipients: recipients
         });
+
+        let lastNotifiedTime = now.toISOString();
+        if (task.notifyCycle && task.notifyCycle !== 'none') {
+          const dueTime = new Date(task.dueTime);
+          let interval = null;
+          if (task.notifyCycle === 'daily') {
+            interval = 24 * 60 * 60 * 1000;
+          } else if (task.notifyCycle === 'weekly') {
+            interval = 7 * 24 * 60 * 60 * 1000;
+          } else if (task.notifyCycle === 'monthly') {
+            interval = 30 * 24 * 60 * 60 * 1000;
+          }
+
+          if (interval !== null) {
+            const msPassed = now.getTime() - dueTime.getTime();
+            const periodsPassed = Math.floor(msPassed / interval);
+            const lastScheduledTime = new Date(dueTime.getTime() + periodsPassed * interval);
+            lastNotifiedTime = lastScheduledTime.toISOString();
+          }
+        }
+
         await db.run(
           "UPDATE tasks SET lastNotifiedAt = ?, notificationHistory = ? WHERE id = ?",
-          [now.toISOString(), JSON.stringify(history), task.id]
+          [lastNotifiedTime, JSON.stringify(history), task.id]
         );
-        console.log(`[Cron] Notified: "${task.title}" (id=${task.id})`);
+        console.log(`[Cron] Notified: "${task.title}" (id=${task.id}), lastNotifiedAt set to ${lastNotifiedTime}`);
       }
     }
   } catch (err) {
