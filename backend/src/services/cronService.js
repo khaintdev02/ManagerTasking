@@ -152,12 +152,65 @@ async function processNotifications() {
   }
 }
 
+async function alignAllTaskSchedules() {
+  try {
+    const now = new Date();
+    const tasks = await db.all(`
+      SELECT id, dueTime, notifyCycle, lastNotifiedAt 
+      FROM tasks 
+      WHERE isDone = 0 AND notifyCycle IN ('daily', 'weekly', 'monthly') AND lastNotifiedAt IS NOT NULL
+    `);
+    
+    for (const task of tasks) {
+      const dueTime = new Date(task.dueTime);
+      if (now < dueTime) continue;
+      
+      let interval = null;
+      if (task.notifyCycle === 'daily') {
+        interval = 24 * 60 * 60 * 1000;
+      } else if (task.notifyCycle === 'weekly') {
+        interval = 7 * 24 * 60 * 60 * 1000;
+      } else if (task.notifyCycle === 'monthly') {
+        interval = 30 * 24 * 60 * 60 * 1000;
+      }
+      
+      if (interval === null) continue;
+      
+      const lastNotified = new Date(task.lastNotifiedAt);
+      const msPassed = lastNotified.getTime() - dueTime.getTime();
+      if (msPassed < 0) continue;
+      
+      const periodsPassed = Math.floor(msPassed / interval);
+      const lastScheduledTime = new Date(dueTime.getTime() + periodsPassed * interval);
+      
+      if (lastNotified.getTime() !== lastScheduledTime.getTime()) {
+        await db.run("UPDATE tasks SET lastNotifiedAt = ? WHERE id = ?", [
+          lastScheduledTime.toISOString(),
+          task.id
+        ]);
+        console.log(`[Cron] Aligned task id=${task.id} lastNotifiedAt from ${task.lastNotifiedAt} to ${lastScheduledTime.toISOString()}`);
+      }
+    }
+  } catch (err) {
+    console.error('[Cron] Error aligning task schedules:', err);
+  }
+}
+
 function startCronJob() {
   cron.schedule('* * * * *', async () => {
     console.log(`[Cron] Running at ${new Date().toISOString()}`);
     await processNotifications();
   });
-  console.log('[Cron] Started (every 1 minute)');
+
+  cron.schedule('0 0 * * *', async () => {
+    console.log('[Cron] Running daily alignment...');
+    await alignAllTaskSchedules();
+  });
+
+  console.log('[Cron] Started (notifications every 1m, alignment daily at midnight)');
+
+  // Run once immediately on start to align existing drifted tasks
+  alignAllTaskSchedules();
 }
 
-module.exports = { startCronJob, processNotifications };
+module.exports = { startCronJob, processNotifications, alignAllTaskSchedules };
