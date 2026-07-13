@@ -54,6 +54,7 @@ async function getDb() {
         notifyTypes TEXT NOT NULL DEFAULT '[]',
         recipients TEXT NOT NULL DEFAULT '[]',
         notifyCycle TEXT NOT NULL DEFAULT 'none',
+        notificationHistory TEXT NOT NULL DEFAULT '[]',
         userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -63,6 +64,13 @@ async function getDb() {
     try {
       await run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
       console.log('[DB] Added notifyCycle column to tasks table (Postgres)');
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    try {
+      await run(`ALTER TABLE tasks ADD COLUMN notificationHistory TEXT DEFAULT '[]'`);
+      console.log('[DB] Added notificationHistory column to tasks table (Postgres)');
     } catch (e) {
       // Ignore if column already exists
     }
@@ -131,6 +139,7 @@ async function getDb() {
         notifyTypes TEXT NOT NULL DEFAULT '[]',
         recipients TEXT NOT NULL DEFAULT '[]',
         notifyCycle TEXT NOT NULL DEFAULT 'none',
+        notificationHistory TEXT NOT NULL DEFAULT '[]',
         userId INTEGER NOT NULL,
         createdAt TEXT DEFAULT (datetime('now')),
         updatedAt TEXT DEFAULT (datetime('now')),
@@ -141,6 +150,13 @@ async function getDb() {
     try {
       db.run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
       console.log('[DB] Added notifyCycle column to tasks table (SQLite)');
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    try {
+      db.run(`ALTER TABLE tasks ADD COLUMN notificationHistory TEXT DEFAULT '[]'`);
+      console.log('[DB] Added notificationHistory column to tasks table (SQLite)');
     } catch (e) {
       // Ignore if column already exists
     }
@@ -208,6 +224,7 @@ function normalizeKeys(row) {
   if ('lastnotifiedat' in mapped) { mapped.lastNotifiedAt = mapped.lastnotifiedat; delete mapped.lastnotifiedat; }
   if ('notifytypes' in mapped) { mapped.notifyTypes = mapped.notifytypes; delete mapped.notifytypes; }
   if ('notifycycle' in mapped) { mapped.notifyCycle = mapped.notifycycle; delete mapped.notifycycle; }
+  if ('notificationhistory' in mapped) { mapped.notificationHistory = mapped.notificationhistory; delete mapped.notificationhistory; }
   if ('userid' in mapped) { mapped.userId = mapped.userid; delete mapped.userid; }
   if ('createdat' in mapped) { mapped.createdAt = mapped.createdat; delete mapped.createdat; }
   if ('updatedat' in mapped) { mapped.updatedAt = mapped.updatedat; delete mapped.updatedat; }

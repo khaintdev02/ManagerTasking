@@ -17,6 +17,7 @@ function parseTask(task) {
     notifyTypes: JSON.parse(task.notifyTypes || '[]'),
     recipients: JSON.parse(task.recipients || '[]'),
     notifyCycle: task.notifyCycle || 'none',
+    notificationHistory: JSON.parse(task.notificationHistory || '[]'),
   };
 }
 

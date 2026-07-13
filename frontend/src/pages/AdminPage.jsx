@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import {
   Users, CheckSquare, AlertTriangle, TrendingUp,
   Trash2, Shield, User, Mail, Calendar, RefreshCw, BellRing,
-  Plus, Edit, Key
+  Plus, Edit, Key, History
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -22,6 +22,11 @@ export default function AdminPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null); // null if creating, user object if editing
   const [userForm, setUserForm] = useState({ email: '', password: '', role: 'user' });
+
+  // Modal State for Task Notification History
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedTaskHistory, setSelectedTaskHistory] = useState([]);
+  const [selectedTaskTitle, setSelectedTaskTitle] = useState('');
 
   // Delete Confirmation State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -354,6 +359,7 @@ export default function AdminPage() {
                 <th>Deadline</th>
                 <th>Trạng thái</th>
                 <th>Notify</th>
+                <th>Lịch sử</th>
               </tr>
             </thead>
             <tbody>
@@ -395,6 +401,20 @@ export default function AdminPage() {
                         )}
                         {!task.notifyTypes?.length && <span style={{ color: 'var(--text-muted)' }}>—</span>}
                       </div>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setSelectedTaskTitle(task.title);
+                          setSelectedTaskHistory(task.notificationHistory || []);
+                          setHistoryModalOpen(true);
+                        }}
+                        style={{ padding: '4px 8px', fontSize: '0.85rem' }}
+                      >
+                        <History size={13} style={{ marginRight: 4 }} />
+                        {task.notificationHistory?.length || 0} lần
+                      </button>
                     </td>
                   </tr>
                 );
@@ -552,6 +572,66 @@ export default function AdminPage() {
                   Xóa vĩnh viễn
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task History Modal */}
+      {historyModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 16
+        }}>
+          <div className="card" style={{ maxWidth: 550, width: '100%', border: '1px solid var(--border-color)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', background: 'var(--bg-card)' }}>
+            <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <History size={18} color="var(--accent-primary)" />
+                Lịch sử thông báo: {selectedTaskTitle}
+              </span>
+            </div>
+
+            <div style={{ maxHeight: 350, overflowY: 'auto', marginBottom: 'var(--spacing-lg)' }}>
+              {selectedTaskHistory.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
+                  Chưa có thông báo nào được gửi.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {selectedTaskHistory.slice().reverse().map((item, idx) => (
+                    <div key={idx} style={{
+                      padding: 12,
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: 8,
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.85rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          #{selectedTaskHistory.length - idx} - {format(new Date(item.sentAt), 'dd/MM/yyyy HH:mm:ss')}
+                        </span>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {item.types?.map(type => (
+                            <span key={type} className={`badge badge-${type}`} style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        <strong>Người nhận:</strong> {item.recipients?.join(', ') || 'Không rõ'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setHistoryModalOpen(false)}>
+                Đóng
+              </button>
             </div>
           </div>
         </div>

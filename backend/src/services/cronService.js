@@ -113,7 +113,16 @@ async function processNotifications() {
       }
 
       if (notified) {
-        await db.run("UPDATE tasks SET lastNotifiedAt = ? WHERE id = ?", [now.toISOString(), task.id]);
+        const history = JSON.parse(task.notificationHistory || '[]');
+        history.push({
+          sentAt: now.toISOString(),
+          types: notifyTypes,
+          recipients: recipients
+        });
+        await db.run(
+          "UPDATE tasks SET lastNotifiedAt = ?, notificationHistory = ? WHERE id = ?",
+          [now.toISOString(), JSON.stringify(history), task.id]
+        );
         console.log(`[Cron] Notified: "${task.title}" (id=${task.id})`);
       }
     }

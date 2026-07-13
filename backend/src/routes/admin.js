@@ -76,6 +76,7 @@ router.get('/tasks', async (req, res) => {
       isDone: t.isDone === 1 || t.isDone === true,
       notifyTypes: JSON.parse(t.notifyTypes || '[]'),
       recipients: JSON.parse(t.recipients || '[]'),
+      notificationHistory: JSON.parse(t.notificationHistory || '[]'),
       User: { id: t.userId, email: t.userEmail },
     }));
 
