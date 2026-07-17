@@ -13,6 +13,9 @@ const CATEGORY_MAP = {
   food: { label: 'Ăn uống', color: '#ff6b81', icon: '🍔' },
   transport: { label: 'Di chuyển', color: '#1e90ff', icon: '🚗' },
   shopping: { label: 'Mua sắm', color: '#ffa502', icon: '🛍️' },
+  housing: { label: 'Nhà ở & Thuê nhà', color: '#ff7f50', icon: '🏠' },
+  utilities: { label: 'Điện & Nước', color: '#70a1ff', icon: '💧' },
+  internet: { label: 'Internet & Viễn thông', color: '#2ed573', icon: '🌐' },
   bills: { label: 'Hóa đơn & Tiền ích', color: '#ff4757', icon: '⚡' },
   entertainment: { label: 'Giải trí', color: '#a55eea', icon: '🎮' },
   education: { label: 'Học tập', color: '#2bcbba', icon: '📚' },
@@ -430,6 +433,9 @@ export default function TransactionsPage() {
                 <option value="food">Ăn uống</option>
                 <option value="transport">Di chuyển</option>
                 <option value="shopping">Mua sắm</option>
+                <option value="housing">Nhà ở & Thuê nhà</option>
+                <option value="utilities">Điện & Nước</option>
+                <option value="internet">Internet & Viễn thông</option>
                 <option value="bills">Hóa đơn</option>
                 <option value="entertainment">Giải trí</option>
                 <option value="education">Học tập</option>
@@ -657,6 +663,9 @@ export default function TransactionsPage() {
                         <option value="food">🍔 Ăn uống</option>
                         <option value="transport">🚗 Di chuyển</option>
                         <option value="shopping">🛍️ Mua sắm</option>
+                        <option value="housing">🏠 Nhà ở & Thuê nhà</option>
+                        <option value="utilities">💧 Điện & Nước</option>
+                        <option value="internet">🌐 Internet & Viễn thông</option>
                         <option value="bills">⚡ Hóa đơn & Tiền ích</option>
                         <option value="entertainment">🎮 Giải trí</option>
                         <option value="education">📚 Học tập</option>
