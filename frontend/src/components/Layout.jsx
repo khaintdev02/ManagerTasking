@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, CheckSquare, Shield, LogOut,
-  Bell, Menu, X, ChevronRight, User, Sun, Moon, Wallet
+  Bell, Menu, X, ChevronRight, User, Sun, Moon, Wallet, Coins
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -90,6 +90,15 @@ export default function Layout() {
           >
             <Wallet size={18} />
             Chi tiêu & Thu nhập
+          </NavLink>
+
+          <NavLink
+            to="/debts"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Coins size={18} />
+            Sổ nợ (Vay & Cho vay)
           </NavLink>
 
           <NavLink

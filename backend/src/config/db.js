@@ -76,6 +76,22 @@ async function getDb() {
       )
     `);
 
+    await run(`
+      CREATE TABLE IF NOT EXISTS debts (
+        id SERIAL PRIMARY KEY,
+        type TEXT NOT NULL,
+        person TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT,
+        dueDate TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        settledAt TEXT,
+        userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     try {
       await run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
       console.log('[DB] Added notifyCycle column to tasks table (Postgres)');
@@ -178,6 +194,23 @@ async function getDb() {
       )
     `);
 
+    db.run(`
+      CREATE TABLE IF NOT EXISTS debts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        person TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT,
+        dueDate TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        settledAt TEXT,
+        userId INTEGER NOT NULL,
+        createdAt TEXT DEFAULT (datetime('now')),
+        updatedAt TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     try {
       db.run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
       console.log('[DB] Added notifyCycle column to tasks table (SQLite)');
@@ -262,6 +295,8 @@ function normalizeKeys(row) {
   if ('pushsubscription' in mapped) { mapped.pushSubscription = mapped.pushsubscription; delete mapped.pushsubscription; }
   if ('useremail' in mapped) { mapped.userEmail = mapped.useremail; delete mapped.useremail; }
   if ('paymentmethod' in mapped) { mapped.paymentMethod = mapped.paymentmethod; delete mapped.paymentmethod; }
+  if ('duedate' in mapped) { mapped.dueDate = mapped.duedate; delete mapped.duedate; }
+  if ('settledat' in mapped) { mapped.settledAt = mapped.settledat; delete mapped.settledat; }
   return mapped;
 }
 

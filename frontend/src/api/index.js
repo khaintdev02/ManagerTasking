@@ -75,4 +75,13 @@ export const transactionsAPI = {
   delete: (id) => api.delete(`/transactions/${id}`),
 };
 
+// Debts API
+export const debtsAPI = {
+  getAll: (params) => api.get('/debts', { params }),
+  getSummary: () => api.get('/debts/summary'),
+  create: (data) => api.post('/debts', data),
+  update: (id, data) => api.put(`/debts/${id}`, data),
+  delete: (id) => api.delete(`/debts/${id}`),
+};
+
 export default api;
