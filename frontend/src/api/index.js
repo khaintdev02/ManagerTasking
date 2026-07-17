@@ -66,4 +66,13 @@ export const adminAPI = {
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
 };
 
+// Transactions API
+export const transactionsAPI = {
+  getAll: (params) => api.get('/transactions', { params }),
+  getStats: (params) => api.get('/transactions/stats', { params }),
+  create: (data) => api.post('/transactions', data),
+  update: (id, data) => api.put(`/transactions/${id}`, data),
+  delete: (id) => api.delete(`/transactions/${id}`),
+};
+
 export default api;

@@ -61,6 +61,21 @@ async function getDb() {
       )
     `);
 
+    await run(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        amount REAL NOT NULL,
+        type TEXT NOT NULL,
+        category TEXT NOT NULL,
+        paymentMethod TEXT NOT NULL,
+        description TEXT,
+        date TEXT NOT NULL,
+        userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     try {
       await run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
       console.log('[DB] Added notifyCycle column to tasks table (Postgres)');
@@ -140,6 +155,22 @@ async function getDb() {
         recipients TEXT NOT NULL DEFAULT '[]',
         notifyCycle TEXT NOT NULL DEFAULT 'none',
         notificationHistory TEXT NOT NULL DEFAULT '[]',
+        userId INTEGER NOT NULL,
+        createdAt TEXT DEFAULT (datetime('now')),
+        updatedAt TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        amount REAL NOT NULL,
+        type TEXT NOT NULL,
+        category TEXT NOT NULL,
+        paymentMethod TEXT NOT NULL,
+        description TEXT,
+        date TEXT NOT NULL,
         userId INTEGER NOT NULL,
         createdAt TEXT DEFAULT (datetime('now')),
         updatedAt TEXT DEFAULT (datetime('now')),
@@ -230,6 +261,7 @@ function normalizeKeys(row) {
   if ('updatedat' in mapped) { mapped.updatedAt = mapped.updatedat; delete mapped.updatedat; }
   if ('pushsubscription' in mapped) { mapped.pushSubscription = mapped.pushsubscription; delete mapped.pushsubscription; }
   if ('useremail' in mapped) { mapped.userEmail = mapped.useremail; delete mapped.useremail; }
+  if ('paymentmethod' in mapped) { mapped.paymentMethod = mapped.paymentmethod; delete mapped.paymentmethod; }
   return mapped;
 }
 

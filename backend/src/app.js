@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 const adminRoutes = require('./routes/admin');
 const pushRoutes = require('./routes/push');
+const transactionRoutes = require('./routes/transactions');
 
 // Import cron service
 const { startCronJob } = require('./services/cronService');
@@ -45,6 +46,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // 404 handler
 app.use((req, res) => {
