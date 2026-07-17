@@ -193,12 +193,14 @@ export default function TransactionsPage() {
   const totalExpense = stats?.summary?.monthExpense || 0;
   const totalIncome = stats?.summary?.monthIncome || 0;
   const monthBalance = stats?.summary?.monthBalance || 0;
-  const budgetProgress = Math.min((totalExpense / monthlyBudget) * 100, 100);
+  const realProgressPercent = monthlyBudget > 0 ? (totalExpense / monthlyBudget) * 100 : 0;
+  const budgetProgress = Math.min(realProgressPercent, 100);
   
   // Progress bar colors depending on budget utilization
   let progressColor = 'var(--accent-success)';
-  if (budgetProgress >= 90) progressColor = 'var(--accent-danger)';
-  else if (budgetProgress >= 70) progressColor = 'var(--accent-warning)';
+  if (realProgressPercent >= 100) progressColor = 'var(--accent-danger)';
+  else if (realProgressPercent >= 90) progressColor = 'var(--accent-danger)';
+  else if (realProgressPercent >= 70) progressColor = 'var(--accent-warning)';
 
   // Process data for charts
   // 1. Group daily stats to build standard monthly chart
@@ -289,18 +291,25 @@ export default function TransactionsPage() {
         </div>
 
         {/* Budget Status Widget */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px 20px' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px 20px', borderColor: realProgressPercent >= 100 ? 'var(--accent-danger)' : 'var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.85rem' }}>
             <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Ngân sách chi tiêu tháng</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{Math.round(budgetProgress)}%</span>
+            <span style={{ color: realProgressPercent >= 100 ? 'var(--accent-danger)' : 'var(--text-primary)', fontWeight: 700 }}>
+              {Math.round(realProgressPercent)}%
+            </span>
           </div>
           <div style={{ height: 10, background: 'var(--bg-input)', borderRadius: 5, overflow: 'hidden', marginBottom: 8 }}>
             <div style={{ width: `${budgetProgress}%`, height: '100%', background: progressColor, borderRadius: 5, transition: 'width 0.4s ease' }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: realProgressPercent >= 100 ? 6 : 0 }}>
             <span>Đã dùng: {formatVND(totalExpense)}</span>
             <span>Hạn mức: {formatVND(monthlyBudget)}</span>
           </div>
+          {realProgressPercent >= 100 && (
+            <div style={{ color: 'var(--accent-danger)', fontSize: '0.72rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 4 }}>
+              ⚠️ Đã vượt hạn mức ngân sách tháng!
+            </div>
+          )}
         </div>
       </div>
 
