@@ -16,7 +16,7 @@ const CATEGORY_MAP = {
   housing: { label: 'Nhà ở & Thuê nhà', color: '#ff7f50', icon: '🏠' },
   utilities: { label: 'Điện & Nước', color: '#70a1ff', icon: '💧' },
   internet: { label: 'Internet & Viễn thông', color: '#2ed573', icon: '🌐' },
-  bills: { label: 'Hóa đơn & Tiền ích', color: '#ff4757', icon: '⚡' },
+  bills: { label: 'Hóa đơn & Tiện ích', color: '#ff4757', icon: '⚡' },
   entertainment: { label: 'Giải trí', color: '#a55eea', icon: '🎮' },
   education: { label: 'Học tập', color: '#2bcbba', icon: '📚' },
   health: { label: 'Sức khỏe', color: '#2ed573', icon: '❤️' },
@@ -666,7 +666,7 @@ export default function TransactionsPage() {
                         <option value="housing">🏠 Nhà ở & Thuê nhà</option>
                         <option value="utilities">💧 Điện & Nước</option>
                         <option value="internet">🌐 Internet & Viễn thông</option>
-                        <option value="bills">⚡ Hóa đơn & Tiền ích</option>
+                        <option value="bills">⚡ Hóa đơn & Tiện ích</option>
                         <option value="entertainment">🎮 Giải trí</option>
                         <option value="education">📚 Học tập</option>
                         <option value="health">❤️ Sức khỏe</option>
