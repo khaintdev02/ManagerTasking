@@ -197,7 +197,7 @@ async function alignAllTaskSchedules() {
 }
 
 function startCronJob() {
-  cron.schedule('* * * * *', async () => {
+  cron.schedule('*/5 * * * *', async () => {
     console.log(`[Cron] Running at ${new Date().toISOString()}`);
     await processNotifications();
   });
@@ -207,7 +207,7 @@ function startCronJob() {
     await alignAllTaskSchedules();
   });
 
-  console.log('[Cron] Started (notifications every 1m, alignment daily at midnight)');
+  console.log('[Cron] Started (notifications every 5m, alignment daily at midnight)');
 
   // Run once immediately on start to align existing drifted tasks
   alignAllTaskSchedules();
