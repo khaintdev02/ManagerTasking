@@ -35,10 +35,7 @@ export default function Layout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 99, display: 'none'
-          }}
+          className="mobile-overlay"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -143,14 +140,7 @@ export default function Layout() {
       {/* Main content */}
       <main className="main-content">
         {/* Mobile header */}
-        <div style={{
-          display: 'none',
-          padding: '12px 16px',
-          background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+        <div className="mobile-header">
           <button className="btn btn-ghost btn-icon" onClick={() => setSidebarOpen(true)}>
             <Menu size={20} />
           </button>
