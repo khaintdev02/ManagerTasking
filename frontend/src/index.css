@@ -1110,3 +1110,29 @@ input, textarea, select { font-family: inherit; }
 .mt-md { margin-top: var(--spacing-md); }
 .mb-md { margin-bottom: var(--spacing-md); }
 .w-full { width: 100%; }
+
+/* ===== RESPONSIVE FOR FINANCE & DEBTS PAGE ===== */
+.finance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 992px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .finance-grid {
+    grid-template-columns: 1fr;
+  }
+}

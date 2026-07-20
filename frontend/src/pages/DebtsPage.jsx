@@ -164,7 +164,7 @@ export default function DebtsPage() {
       </div>
 
       {/* Summary Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--spacing-lg)' }}>
+      <div className="finance-grid">
         {/* Total Debt (I owe) */}
         <div className="stat-card" style={{ '--stat-color': 'var(--accent-danger)', '--stat-color-rgb': '255, 71, 87' }}>
           <div className="stat-icon"><TrendingDown size={24} /></div>

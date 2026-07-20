@@ -238,7 +238,7 @@ export default function TransactionsPage() {
           <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Theo dõi, ghi chép thu nhập và chi tiêu hằng ngày của bạn</p>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius-sm)', padding: '4px 8px' }}>
             <Calendar size={16} style={{ color: 'var(--text-secondary)', marginRight: 6 }} />
             <input 
@@ -260,7 +260,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Main widgets grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--spacing-lg)' }}>
+      <div className="finance-grid">
         {/* Income Card */}
         <div className="stat-card" style={{ '--stat-color': 'var(--accent-success)', '--stat-color-rgb': '46, 213, 115' }}>
           <div className="stat-icon"><TrendingUp size={24} /></div>
