@@ -313,10 +313,9 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Visual Analytics section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--spacing-lg)', alignItems: 'stretch' }} className="analytics-grid">
+      <div className="analytics-grid" style={{ alignItems: 'stretch' }}>
         {/* Daily chart card */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', minWidth: 0 }}>
           <div className="card-header" style={{ marginBottom: 0 }}>
             <div className="card-title">Biểu đồ thu chi hằng ngày ({selectedMonth})</div>
             <div style={{ display: 'flex', gap: 12, fontSize: '0.75rem' }}>
@@ -377,7 +376,7 @@ export default function TransactionsPage() {
         </div>
 
         {/* Category breakdown card */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', minWidth: 0 }}>
           <div className="card-header" style={{ marginBottom: 0 }}>
             <div className="card-title">Cơ cấu chi tiêu ({selectedMonth})</div>
           </div>
