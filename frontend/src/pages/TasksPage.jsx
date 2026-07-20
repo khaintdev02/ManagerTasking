@@ -201,6 +201,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('taskViewMode') || 'grid');
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('taskViewMode', viewMode);
@@ -282,6 +283,7 @@ export default function TasksPage() {
   };
 
   const handleSave = async (formData) => {
+    setProcessing(true);
     try {
       if (editingTask) {
         await tasksAPI.update(editingTask.id, formData);
@@ -292,10 +294,12 @@ export default function TasksPage() {
       }
       setShowModal(false);
       setEditingTask(null);
-      fetchTasks();
+      await fetchTasks();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Có lỗi xảy ra');
       throw err;
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -306,22 +310,28 @@ export default function TasksPage() {
 
   const handleDelete = async (task) => {
     if (!window.confirm(`Xóa công việc "${task.title}"?`)) return;
+    setProcessing(true);
     try {
       await tasksAPI.delete(task.id);
       toast.success('Đã xóa công việc');
-      fetchTasks();
+      await fetchTasks();
     } catch (err) {
       toast.error('Không thể xóa công việc');
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleToggle = async (task) => {
+    setProcessing(true);
     try {
       await tasksAPI.toggleComplete(task.id);
       toast.success(task.isDone ? 'Đã đánh dấu chưa hoàn thành' : '✅ Đã hoàn thành!');
-      fetchTasks();
+      await fetchTasks();
     } catch (err) {
       toast.error('Có lỗi xảy ra');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -461,6 +471,14 @@ export default function TasksPage() {
           onClose={() => { setShowModal(false); setEditingTask(null); }}
           onSave={handleSave}
         />
+      )}
+
+      {/* Loading Overlay */}
+      {processing && (
+        <div className="loading-overlay">
+          <div className="spinner" />
+          <div className="loading-text">Đang xử lý dữ liệu...</div>
+        </div>
       )}
     </div>
   );

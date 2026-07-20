@@ -1136,3 +1136,25 @@ input, textarea, select { font-family: inherit; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== GLOBAL LOADING OVERLAY ===== */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 11, 15, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: var(--spacing-md);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.loading-text {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}

@@ -11,6 +11,7 @@ export default function DebtsPage() {
   const [debts, setDebts] = useState([]);
   const [summary, setSummary] = useState({ totalDebt: 0, totalLoan: 0, netBalance: 0 });
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   
   // Filters
   const [typeFilter, setTypeFilter] = useState('');
@@ -88,6 +89,7 @@ export default function DebtsPage() {
       return;
     }
 
+    setProcessing(true);
     try {
       if (editingId) {
         await debtsAPI.update(editingId, { ...formData, amount: amountVal });
@@ -97,37 +99,45 @@ export default function DebtsPage() {
         toast.success('Đã thêm ghi chép nợ mới');
       }
       setShowModal(false);
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error('Submit debt error:', err);
       toast.error(err.response?.data?.error || 'Có lỗi xảy ra khi lưu ghi chép');
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleQuickToggleStatus = async (debt) => {
     const nextStatus = debt.status === 'pending' ? 'settled' : 'pending';
     const actionText = nextStatus === 'settled' ? 'Đã trả xong' : 'Chưa thanh toán';
+    setProcessing(true);
     try {
       await debtsAPI.update(debt.id, {
         status: nextStatus
       });
       toast.success(`Đã đánh dấu là ${actionText}`);
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error('Toggle status error:', err);
       toast.error('Không thể cập nhật trạng thái');
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa ghi chép nợ này?')) return;
+    setProcessing(true);
     try {
       await debtsAPI.delete(id);
       toast.success('Đã xóa ghi chép');
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error('Delete debt error:', err);
       toast.error('Không thể xóa ghi chép');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -467,6 +477,13 @@ export default function DebtsPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Loading Overlay */}
+      {processing && (
+        <div className="loading-overlay">
+          <div className="spinner" />
+          <div className="loading-text">Đang xử lý dữ liệu...</div>
         </div>
       )}
     </div>

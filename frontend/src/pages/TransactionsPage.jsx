@@ -53,6 +53,7 @@ export default function TransactionsPage() {
   });
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [tempBudget, setTempBudget] = useState(monthlyBudget);
+  const [processing, setProcessing] = useState(false);
 
   // Form State
   const [showModal, setShowModal] = useState(false);
@@ -145,6 +146,7 @@ export default function TransactionsPage() {
       return;
     }
 
+    setProcessing(true);
     try {
       if (editingId) {
         await transactionsAPI.update(editingId, formData);
@@ -154,22 +156,27 @@ export default function TransactionsPage() {
         toast.success('Đã thêm giao dịch mới');
       }
       setShowModal(false);
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error('Submit transaction error:', err);
       toast.error(err.response?.data?.error || 'Có lỗi xảy ra khi lưu giao dịch');
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa giao dịch này?')) return;
+    setProcessing(true);
     try {
       await transactionsAPI.delete(id);
       toast.success('Đã xóa giao dịch');
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error('Delete transaction error:', err);
       toast.error('Không thể xóa giao dịch');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -724,6 +731,13 @@ export default function TransactionsPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Loading Overlay */}
+      {processing && (
+        <div className="loading-overlay">
+          <div className="spinner" />
+          <div className="loading-text">Đang xử lý dữ liệu...</div>
         </div>
       )}
     </div>
