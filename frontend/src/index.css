@@ -140,7 +140,7 @@ input, textarea, select { font-family: inherit; }
 
 .page-container {
   padding: var(--spacing-xl);
-  max-width: 1400px;
+  width: 100%;
 }
 
 /* ===== SIDEBAR ===== */
