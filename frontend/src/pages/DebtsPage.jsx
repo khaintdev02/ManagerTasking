@@ -286,12 +286,20 @@ export default function DebtsPage() {
                         </span>
                       </td>
                       <td>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-                          <span style={{ display: 'inline-flex', width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-input)', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
-                            <User size={12} style={{ color: 'var(--text-secondary)' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                            <span style={{ display: 'inline-flex', width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-input)', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', flexShrink: 0 }}>
+                              <User size={12} style={{ color: 'var(--text-secondary)' }} />
+                            </span>
+                            <span>{d.person}</span>
                           </span>
-                          <span>{d.person}</span>
-                        </span>
+                          {d.description && (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', paddingLeft: 30, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <FileText size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
+                              <span>{d.description}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ 
                         textAlign: 'right', 
