@@ -11,7 +11,7 @@ function getRequiredInterval(dueTimeStr) {
 
   if (diffMs < 0) return 4 * 60 * 60 * 1000;        // Overdue: 4h
   if (diffDays <= 1) return 8 * 60 * 60 * 1000;     // ≤1 day: 8h
-  if (diffDays <= 3) return 12 * 60 * 60 * 1000;    // ≤3 days: 12h
+  if (diffDays <= 3) return 24 * 60 * 60 * 1000;    // ≤3 days: 24h
   return null; // >3 days: no notification
 }
 
