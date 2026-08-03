@@ -108,6 +108,16 @@ async function getDb() {
 
     console.log('[DB] Connected and initialized PostgreSQL database via Neon');
 
+    // Reset/Sync sequence counters for Postgres tables to prevent duplicate key errors after data import/seed
+    const tables = ['users', 'tasks', 'transactions', 'debts'];
+    for (const table of tables) {
+      try {
+        await pgPool.query(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 1))`);
+      } catch (seqErr) {
+        console.error(`[DB] Failed to sync sequence for ${table}:`, seqErr);
+      }
+    }
+
     // Ensure default admin account exists
     const adminEmail = 'khainguyenthe203@gmail.com';
     const bcrypt = require('bcryptjs');
