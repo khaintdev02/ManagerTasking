@@ -56,6 +56,8 @@ function parseDebt(d) {
   return {
     ...d,
     amount: parseFloat(d.amount),
+    createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : (d.createdAt ? String(d.createdAt) : null),
+    updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : (d.updatedAt ? String(d.updatedAt) : null),
   };
 }
 
@@ -64,6 +66,8 @@ function parsePayment(p) {
   return {
     ...p,
     amount: parseFloat(p.amount),
+    createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : (p.createdAt ? String(p.createdAt) : null),
+    updatedAt: p.updatedAt instanceof Date ? p.updatedAt.toISOString() : (p.updatedAt ? String(p.updatedAt) : null),
   };
 }
 
@@ -261,7 +265,9 @@ router.get('/people', async (req, res) => {
       if (a.status !== b.status) {
         return a.status === 'pending' ? -1 : 1;
       }
-      return (b.lastActivity || '').localeCompare(a.lastActivity || '');
+      const timeA = new Date(a.lastActivity || 0).getTime() || 0;
+      const timeB = new Date(b.lastActivity || 0).getTime() || 0;
+      return timeB - timeA;
     });
 
     res.json(people);
