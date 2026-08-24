@@ -3,7 +3,7 @@ import {
   Plus, Search, Edit2, Trash2, Calendar, 
   TrendingUp, TrendingDown, Scale, User, X, 
   ArrowUpRight, ArrowDownRight, CheckCircle2, AlertCircle, FileText,
-  Users, History, DollarSign, Wallet, ArrowRightLeft, Clock
+  Users, History, DollarSign, Wallet, Clock
 } from 'lucide-react';
 import { debtsAPI } from '../api';
 import toast from 'react-hot-toast';
@@ -50,16 +50,19 @@ export default function DebtsPage() {
     setLoading(true);
     try {
       const [peopleRes, listRes, summaryRes] = await Promise.all([
-        debtsAPI.getPeople({ type: typeFilter, search: searchQuery }),
+        debtsAPI.getPeople({ type: typeFilter, search: searchQuery }).catch(err => {
+          console.warn('getPeople failed:', err);
+          return { data: [] };
+        }),
         debtsAPI.getAll({ type: typeFilter, status: statusFilter, search: searchQuery }),
         debtsAPI.getSummary()
       ]);
-      setPeople(peopleRes.data);
-      setDebts(listRes.data);
-      setSummary(summaryRes.data);
+      setPeople(peopleRes.data || []);
+      setDebts(listRes.data || []);
+      setSummary(summaryRes.data || { totalDebt: 0, totalLoan: 0, netBalance: 0 });
 
       // If history modal is currently open, refresh its selected person data
-      if (selectedPersonGroup) {
+      if (selectedPersonGroup && peopleRes.data) {
         const updatedGroup = peopleRes.data.find(g => g.key === selectedPersonGroup.key);
         if (updatedGroup) {
           setSelectedPersonGroup(updatedGroup);
@@ -527,7 +530,7 @@ export default function DebtsPage() {
                     <th style={{ width: '15%' }}>Loại giao dịch</th>
                     <th style={{ width: '18%' }}>Người vay / Cho vay</th>
                     <th style={{ width: '15%', textAlign: 'right' }}>Số tiền</th>
-                    <th style={{ width: '15%' }}>Hạn trả nợ</th>
+                    <th style={{ width: '15%' }}>Ngày trả nợ</th>
                     <th style={{ width: '13%' }}>Trạng thái</th>
                     <th style={{ width: '12%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
@@ -719,9 +722,9 @@ export default function DebtsPage() {
                 />
               </div>
 
-              {/* Due Date */}
+              {/* Due Date -> Ngày trả nợ */}
               <div className="form-group">
-                <label className="form-label">Hạn trả nợ (Không bắt buộc)</label>
+                <label className="form-label">Ngày trả nợ (Không bắt buộc)</label>
                 <input 
                   type="date" 
                   className="form-input" 
@@ -936,7 +939,7 @@ export default function DebtsPage() {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{formatVND(d.amount)}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          Ngày tạo: {d.createdAt ? d.createdAt.substring(0, 10) : '---'} {d.dueDate ? `• Hạn trả: ${d.dueDate}` : ''}
+                          Ngày tạo: {d.createdAt ? d.createdAt.substring(0, 10) : '---'} {d.dueDate ? `• Ngày trả nợ: ${d.dueDate}` : ''}
                         </div>
                         {d.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{d.description}</div>}
                       </div>

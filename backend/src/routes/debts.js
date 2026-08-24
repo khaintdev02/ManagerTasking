@@ -8,6 +8,49 @@ function authMiddleware(req, res, next) {
   require('../middleware/auth')(req, res, next);
 }
 
+let tableChecked = false;
+async function ensurePaymentsTable() {
+  if (tableChecked) return;
+  try {
+    if (db.isPg) {
+      await db.run(`
+        CREATE TABLE IF NOT EXISTS debt_payments (
+          id SERIAL PRIMARY KEY,
+          person TEXT NOT NULL,
+          type TEXT NOT NULL,
+          amount REAL NOT NULL,
+          paymentDate TEXT NOT NULL,
+          note TEXT,
+          debtId INTEGER REFERENCES debts(id) ON DELETE SET NULL,
+          userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    } else {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS debt_payments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          person TEXT NOT NULL,
+          type TEXT NOT NULL,
+          amount REAL NOT NULL,
+          paymentDate TEXT NOT NULL,
+          note TEXT,
+          debtId INTEGER,
+          userId INTEGER NOT NULL,
+          createdAt TEXT DEFAULT (datetime('now')),
+          updatedAt TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (debtId) REFERENCES debts(id) ON DELETE SET NULL
+        )
+      `);
+    }
+    tableChecked = true;
+  } catch (err) {
+    console.warn('[DB] Error auto-ensuring debt_payments table:', err);
+  }
+}
+
 function parseDebt(d) {
   if (!d) return null;
   return {
@@ -60,12 +103,19 @@ router.get('/', async (req, res) => {
 // GET /api/debts/summary - Get total debt, total loan, and net balance accounting for partial repayments
 router.get('/summary', async (req, res) => {
   try {
+    await ensurePaymentsTable();
     const userId = req.user.id;
 
     // Sum all debts by type
     const debtRows = await db.all('SELECT type, SUM(amount) as total FROM debts WHERE userId = ? GROUP BY type', [userId]);
     // Sum all payments by type
-    const payRows = await db.all('SELECT type, SUM(amount) as total FROM debt_payments WHERE userId = ? GROUP BY type', [userId]);
+    let payRows = [];
+    try {
+      payRows = await db.all('SELECT type, SUM(amount) as total FROM debt_payments WHERE userId = ? GROUP BY type', [userId]);
+    } catch (payErr) {
+      console.warn('Query debt_payments failed (falling back to empty):', payErr);
+      payRows = [];
+    }
 
     let debtTotal = 0;
     let loanTotal = 0;
@@ -102,6 +152,7 @@ router.get('/summary', async (req, res) => {
 // GET /api/debts/people - Get aggregated list of debts and repayments grouped by person
 router.get('/people', async (req, res) => {
   try {
+    await ensurePaymentsTable();
     const userId = req.user.id;
     const { type, search } = req.query;
 
@@ -120,15 +171,22 @@ router.get('/people', async (req, res) => {
     const debtsRaw = await db.all(debtsSql, debtsParams);
     const debts = debtsRaw.map(parseDebt);
 
-    let paymentsSql = 'SELECT * FROM debt_payments WHERE userId = ?';
-    const paymentsParams = [userId];
-    if (type) {
-      paymentsSql += ' AND type = ?';
-      paymentsParams.push(type);
-    }
-    paymentsSql += ' ORDER BY paymentDate DESC, createdAt DESC';
+    let paymentsRaw = [];
+    try {
+      let paymentsSql = 'SELECT * FROM debt_payments WHERE userId = ?';
+      const paymentsParams = [userId];
+      if (type) {
+        paymentsSql += ' AND type = ?';
+        paymentsParams.push(type);
+      }
+      paymentsSql += ' ORDER BY paymentDate DESC, createdAt DESC';
 
-    const paymentsRaw = await db.all(paymentsSql, paymentsParams);
+      paymentsRaw = await db.all(paymentsSql, paymentsParams);
+    } catch (payErr) {
+      console.warn('Query debt_payments for people failed:', payErr);
+      paymentsRaw = [];
+    }
+
     const payments = paymentsRaw.map(parsePayment);
 
     // Grouping by person and type
@@ -216,6 +274,7 @@ router.get('/people', async (req, res) => {
 // POST /api/debts/payments - Record a partial or full debt repayment
 router.post('/payments', async (req, res) => {
   try {
+    await ensurePaymentsTable();
     const { person, type, amount, paymentDate, note, debtId } = req.body;
     const userId = req.user.id;
 
@@ -280,6 +339,7 @@ router.post('/payments', async (req, res) => {
 // GET /api/debts/payments - Get repayment logs
 router.get('/payments', async (req, res) => {
   try {
+    await ensurePaymentsTable();
     const userId = req.user.id;
     const { person, type } = req.query;
 
@@ -309,6 +369,7 @@ router.get('/payments', async (req, res) => {
 // DELETE /api/debts/payments/:id - Delete a repayment log
 router.delete('/payments/:id', async (req, res) => {
   try {
+    await ensurePaymentsTable();
     const userId = req.user.id;
     const existing = await db.get('SELECT * FROM debt_payments WHERE id = ? AND userId = ?', [req.params.id, userId]);
     if (!existing) {

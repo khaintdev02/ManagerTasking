@@ -339,6 +339,8 @@ function normalizeKeys(row) {
   if ('paymentmethod' in mapped) { mapped.paymentMethod = mapped.paymentmethod; delete mapped.paymentmethod; }
   if ('duedate' in mapped) { mapped.dueDate = mapped.duedate; delete mapped.duedate; }
   if ('settledat' in mapped) { mapped.settledAt = mapped.settledat; delete mapped.settledat; }
+  if ('paymentdate' in mapped) { mapped.paymentDate = mapped.paymentdate; delete mapped.paymentdate; }
+  if ('debtid' in mapped) { mapped.debtId = mapped.debtid; delete mapped.debtid; }
   return mapped;
 }
 
