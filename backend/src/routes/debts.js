@@ -16,6 +16,14 @@ function parseDebt(d) {
   };
 }
 
+function parsePayment(p) {
+  if (!p) return null;
+  return {
+    ...p,
+    amount: parseFloat(p.amount),
+  };
+}
+
 // GET /api/debts - List debts of the current user
 router.get('/', async (req, res) => {
   try {
@@ -49,30 +57,289 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/debts/summary - Get total debt, total loan, and net balance
+// GET /api/debts/summary - Get total debt, total loan, and net balance accounting for partial repayments
 router.get('/summary', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // We only sum pending (unpaid) debts/loans for active financial summaries
-    const sql = 'SELECT type, SUM(amount) as total FROM debts WHERE userId = ? AND status = ? GROUP BY type';
-    const rows = await db.all(sql, [userId, 'pending']);
+    // Sum all debts by type
+    const debtRows = await db.all('SELECT type, SUM(amount) as total FROM debts WHERE userId = ? GROUP BY type', [userId]);
+    // Sum all payments by type
+    const payRows = await db.all('SELECT type, SUM(amount) as total FROM debt_payments WHERE userId = ? GROUP BY type', [userId]);
 
-    let totalDebt = 0;
-    let totalLoan = 0;
-
-    rows.forEach(r => {
-      if (r.type === 'debt') totalDebt = parseFloat(r.total || 0);
-      if (r.type === 'loan') totalLoan = parseFloat(r.total || 0);
+    let debtTotal = 0;
+    let loanTotal = 0;
+    debtRows.forEach(r => {
+      if (r.type === 'debt') debtTotal = parseFloat(r.total || 0);
+      if (r.type === 'loan') loanTotal = parseFloat(r.total || 0);
     });
 
+    let debtPaid = 0;
+    let loanPaid = 0;
+    payRows.forEach(r => {
+      if (r.type === 'debt') debtPaid = parseFloat(r.total || 0);
+      if (r.type === 'loan') loanPaid = parseFloat(r.total || 0);
+    });
+
+    const activeDebt = Math.max(0, debtTotal - debtPaid);
+    const activeLoan = Math.max(0, loanTotal - loanPaid);
+
     res.json({
-      totalDebt,
-      totalLoan,
-      netBalance: totalLoan - totalDebt
+      totalDebt: activeDebt,
+      totalLoan: activeLoan,
+      originalDebt: debtTotal,
+      originalLoan: loanTotal,
+      paidDebt: debtPaid,
+      paidLoan: loanPaid,
+      netBalance: activeLoan - activeDebt
     });
   } catch (err) {
     console.error('Get debts summary error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/debts/people - Get aggregated list of debts and repayments grouped by person
+router.get('/people', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { type, search } = req.query;
+
+    let debtsSql = 'SELECT * FROM debts WHERE userId = ?';
+    const debtsParams = [userId];
+    if (type) {
+      debtsSql += ' AND type = ?';
+      debtsParams.push(type);
+    }
+    if (search) {
+      debtsSql += ' AND (person LIKE ? OR description LIKE ?)';
+      debtsParams.push(`%${search}%`, `%${search}%`);
+    }
+    debtsSql += ' ORDER BY createdAt DESC';
+
+    const debtsRaw = await db.all(debtsSql, debtsParams);
+    const debts = debtsRaw.map(parseDebt);
+
+    let paymentsSql = 'SELECT * FROM debt_payments WHERE userId = ?';
+    const paymentsParams = [userId];
+    if (type) {
+      paymentsSql += ' AND type = ?';
+      paymentsParams.push(type);
+    }
+    paymentsSql += ' ORDER BY paymentDate DESC, createdAt DESC';
+
+    const paymentsRaw = await db.all(paymentsSql, paymentsParams);
+    const payments = paymentsRaw.map(parsePayment);
+
+    // Grouping by person and type
+    const groupsMap = {};
+
+    debts.forEach(d => {
+      const key = `${d.person.trim().toLowerCase()}_${d.type}`;
+      if (!groupsMap[key]) {
+        groupsMap[key] = {
+          key,
+          person: d.person.trim(),
+          type: d.type,
+          totalAmount: 0,
+          paidAmount: 0,
+          debts: [],
+          payments: [],
+          dueDates: [],
+          lastActivity: d.createdAt || ''
+        };
+      }
+      groupsMap[key].totalAmount += d.amount;
+      groupsMap[key].debts.push(d);
+      if (d.dueDate) {
+        groupsMap[key].dueDates.push(d.dueDate);
+      }
+      if (d.createdAt && d.createdAt > groupsMap[key].lastActivity) {
+        groupsMap[key].lastActivity = d.createdAt;
+      }
+    });
+
+    payments.forEach(p => {
+      const key = `${p.person.trim().toLowerCase()}_${p.type}`;
+      if (!groupsMap[key]) {
+        groupsMap[key] = {
+          key,
+          person: p.person.trim(),
+          type: p.type,
+          totalAmount: 0,
+          paidAmount: 0,
+          debts: [],
+          payments: [],
+          dueDates: [],
+          lastActivity: p.paymentDate || p.createdAt || ''
+        };
+      }
+      groupsMap[key].paidAmount += p.amount;
+      groupsMap[key].payments.push(p);
+      const activity = p.paymentDate || p.createdAt || '';
+      if (activity > groupsMap[key].lastActivity) {
+        groupsMap[key].lastActivity = activity;
+      }
+    });
+
+    const people = Object.values(groupsMap).map(g => {
+      const remainingAmount = Math.max(0, g.totalAmount - g.paidAmount);
+      const status = (g.totalAmount > 0 && remainingAmount <= 0) ? 'settled' : 'pending';
+      const progressPercent = g.totalAmount > 0 
+        ? Math.min(100, Math.round((g.paidAmount / g.totalAmount) * 100)) 
+        : 100;
+
+      return {
+        ...g,
+        remainingAmount,
+        status,
+        progressPercent,
+        hasOverdue: g.dueDates.some(due => due < new Date().toISOString().substring(0, 10)) && status === 'pending'
+      };
+    });
+
+    // Sort: Pending first, then by lastActivity DESC
+    people.sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status === 'pending' ? -1 : 1;
+      }
+      return (b.lastActivity || '').localeCompare(a.lastActivity || '');
+    });
+
+    res.json(people);
+  } catch (err) {
+    console.error('Get people debts error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/debts/payments - Record a partial or full debt repayment
+router.post('/payments', async (req, res) => {
+  try {
+    const { person, type, amount, paymentDate, note, debtId } = req.body;
+    const userId = req.user.id;
+
+    if (!person || person.trim() === '') {
+      return res.status(400).json({ error: 'Person name is required' });
+    }
+    if (!type || !['debt', 'loan'].includes(type)) {
+      return res.status(400).json({ error: 'Type must be debt or loan' });
+    }
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    }
+
+    const payDate = paymentDate || new Date().toISOString().substring(0, 10);
+
+    const insertSql = db.isPg ?
+      `INSERT INTO debt_payments (person, type, amount, paymentDate, note, debtId, userId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)` :
+      `INSERT INTO debt_payments (person, type, amount, paymentDate, note, debtId, userId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`;
+
+    await db.run(insertSql, [
+      person.trim(),
+      type,
+      parseFloat(amount),
+      payDate,
+      note || null,
+      debtId || null,
+      userId
+    ]);
+
+    const paymentId = db.lastInsertRowid();
+    const payment = await db.get('SELECT * FROM debt_payments WHERE id = ?', [paymentId]);
+
+    // Check if all debts of this person are now settled
+    const debtTotalRow = await db.get(
+      'SELECT SUM(amount) as total FROM debts WHERE userId = ? AND LOWER(person) = LOWER(?) AND type = ?',
+      [userId, person.trim(), type]
+    );
+    const payTotalRow = await db.get(
+      'SELECT SUM(amount) as total FROM debt_payments WHERE userId = ? AND LOWER(person) = LOWER(?) AND type = ?',
+      [userId, person.trim(), type]
+    );
+
+    const totalDebtAmount = parseFloat(debtTotalRow?.total || 0);
+    const totalPaidAmount = parseFloat(payTotalRow?.total || 0);
+
+    if (totalDebtAmount > 0 && totalPaidAmount >= totalDebtAmount) {
+      await db.run(
+        'UPDATE debts SET status = ?, settledAt = ? WHERE userId = ? AND LOWER(person) = LOWER(?) AND type = ?',
+        ['settled', payDate, userId, person.trim(), type]
+      );
+    }
+
+    res.status(201).json(parsePayment(payment));
+  } catch (err) {
+    console.error('Create debt payment error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/debts/payments - Get repayment logs
+router.get('/payments', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { person, type } = req.query;
+
+    let sql = 'SELECT * FROM debt_payments WHERE userId = ?';
+    const params = [userId];
+
+    if (person) {
+      sql += ' AND LOWER(person) = LOWER(?)';
+      params.push(person.trim());
+    }
+    if (type) {
+      sql += ' AND type = ?';
+      params.push(type);
+    }
+
+    sql += ' ORDER BY paymentDate DESC, createdAt DESC';
+
+    const raw = await db.all(sql, params);
+    const payments = raw.map(parsePayment);
+    res.json(payments);
+  } catch (err) {
+    console.error('Get debt payments error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// DELETE /api/debts/payments/:id - Delete a repayment log
+router.delete('/payments/:id', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const existing = await db.get('SELECT * FROM debt_payments WHERE id = ? AND userId = ?', [req.params.id, userId]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Payment record not found' });
+    }
+
+    await db.run('DELETE FROM debt_payments WHERE id = ?', [req.params.id]);
+
+    // Recalculate and update status if needed
+    const debtTotalRow = await db.get(
+      'SELECT SUM(amount) as total FROM debts WHERE userId = ? AND LOWER(person) = LOWER(?) AND type = ?',
+      [userId, existing.person, existing.type]
+    );
+    const payTotalRow = await db.get(
+      'SELECT SUM(amount) as total FROM debt_payments WHERE userId = ? AND LOWER(person) = LOWER(?) AND type = ?',
+      [userId, existing.person, existing.type]
+    );
+
+    const totalDebtAmount = parseFloat(debtTotalRow?.total || 0);
+    const totalPaidAmount = parseFloat(payTotalRow?.total || 0);
+
+    if (totalDebtAmount > totalPaidAmount) {
+      await db.run(
+        'UPDATE debts SET status = ?, settledAt = NULL WHERE userId = ? AND LOWER(person) = LOWER(?) AND type = ?',
+        ['pending', userId, existing.person, existing.type]
+      );
+    }
+
+    res.json({ message: 'Payment record deleted successfully' });
+  } catch (err) {
+    console.error('Delete debt payment error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

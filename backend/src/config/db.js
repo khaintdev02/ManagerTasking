@@ -92,6 +92,21 @@ async function getDb() {
       )
     `);
 
+    await run(`
+      CREATE TABLE IF NOT EXISTS debt_payments (
+        id SERIAL PRIMARY KEY,
+        person TEXT NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        paymentDate TEXT NOT NULL,
+        note TEXT,
+        debtId INTEGER REFERENCES debts(id) ON DELETE SET NULL,
+        userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     try {
       await run(`ALTER TABLE tasks ADD COLUMN notifyCycle TEXT DEFAULT 'none'`);
       console.log('[DB] Added notifyCycle column to tasks table (Postgres)');
@@ -109,7 +124,7 @@ async function getDb() {
     console.log('[DB] Connected and initialized PostgreSQL database via Neon');
 
     // Reset/Sync sequence counters for Postgres tables to prevent duplicate key errors after data import/seed
-    const tables = ['users', 'tasks', 'transactions', 'debts'];
+    const tables = ['users', 'tasks', 'transactions', 'debts', 'debt_payments'];
     for (const table of tables) {
       try {
         await pgPool.query(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 1))`);
@@ -218,6 +233,23 @@ async function getDb() {
         createdAt TEXT DEFAULT (datetime('now')),
         updatedAt TEXT DEFAULT (datetime('now')),
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS debt_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        person TEXT NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        paymentDate TEXT NOT NULL,
+        note TEXT,
+        debtId INTEGER,
+        userId INTEGER NOT NULL,
+        createdAt TEXT DEFAULT (datetime('now')),
+        updatedAt TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (debtId) REFERENCES debts(id) ON DELETE SET NULL
       )
     `);
 
