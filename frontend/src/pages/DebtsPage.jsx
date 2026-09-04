@@ -608,33 +608,41 @@ export default function DebtsPage() {
 
                         {/* Cột 6: Ngày trả / Trạng thái */}
                         <td>
-                          <button 
-                            className="btn btn-ghost" 
-                            style={{ 
-                              padding: '3px 8px', 
-                              borderRadius: 12, 
-                              fontSize: '0.75rem',
-                              fontWeight: 'bold',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              background: isSettled ? 'rgba(46, 213, 115, 0.15)' : 'rgba(255, 71, 87, 0.15)',
-                              color: isSettled ? 'var(--accent-success)' : 'var(--accent-danger)',
-                              border: '1px solid transparent'
-                            }}
-                            onClick={() => handleQuickToggleStatus(d)}
-                            title="Click để đổi trạng thái thanh toán"
-                          >
-                            {isSettled ? (
-                              <>
-                                <CheckCircle2 size={11} /> {d.settledAt ? `Đã trả (${d.settledAt})` : 'Đã trả'}
-                              </>
-                            ) : (
-                              <>
-                                <AlertCircle size={11} /> Chưa trả
-                              </>
-                            )}
-                          </button>
+                          {isSettled ? (
+                            <span 
+                              style={{ 
+                                padding: '4px 10px', 
+                                borderRadius: 12, 
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                background: 'rgba(46, 213, 115, 0.15)',
+                                color: 'var(--accent-success)',
+                                border: '1px solid rgba(46, 213, 115, 0.2)'
+                              }}
+                            >
+                              <CheckCircle2 size={12} /> {d.settledAt ? `Đã trả (${d.settledAt})` : 'Đã trả'}
+                            </span>
+                          ) : (
+                            <span 
+                              style={{ 
+                                padding: '4px 10px', 
+                                borderRadius: 12, 
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                background: 'rgba(255, 71, 87, 0.15)',
+                                color: 'var(--accent-danger)',
+                                border: '1px solid rgba(255, 71, 87, 0.2)'
+                              }}
+                            >
+                              <AlertCircle size={12} /> Chưa trả
+                            </span>
+                          )}
                         </td>
 
                         {/* Cột 7: Thao tác */}
