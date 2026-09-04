@@ -29,7 +29,6 @@ export default function DebtsPage() {
     person: '',
     amount: '',
     debtDate: new Date().toISOString().substring(0, 10),
-    dueDate: '',
     description: '',
     status: 'pending'
   });
@@ -89,7 +88,6 @@ export default function DebtsPage() {
       person: prefill.person || '',
       amount: '',
       debtDate: prefill.debtDate || new Date().toISOString().substring(0, 10),
-      dueDate: '',
       description: '',
       status: 'pending'
     });
@@ -99,12 +97,12 @@ export default function DebtsPage() {
   // Open Edit Debt Modal
   const handleOpenEditDebt = (d) => {
     setEditingDebtId(d.id);
+    const existingDate = d.debtDate || d.dueDate || (d.createdAt ? d.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10));
     setDebtFormData({
       type: d.type,
       person: d.person,
       amount: d.amount.toString(),
-      debtDate: d.debtDate || (d.createdAt ? d.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10)),
-      dueDate: d.dueDate || '',
+      debtDate: existingDate,
       description: d.description || '',
       status: d.status
     });
@@ -126,11 +124,18 @@ export default function DebtsPage() {
 
     setProcessing(true);
     try {
+      const payload = {
+        ...debtFormData,
+        amount: amountVal,
+        debtDate: debtFormData.debtDate,
+        dueDate: debtFormData.debtDate // Đồng bộ cả 2 trường để đảm bảo tương thích
+      };
+
       if (editingDebtId) {
-        await debtsAPI.update(editingDebtId, { ...debtFormData, amount: amountVal });
+        await debtsAPI.update(editingDebtId, payload);
         toast.success('Đã cập nhật khoản nợ thành công');
       } else {
-        await debtsAPI.create({ ...debtFormData, amount: amountVal });
+        await debtsAPI.create(payload);
         toast.success('Đã thêm ghi chép nợ mới');
       }
       setShowDebtModal(false);
@@ -236,12 +241,6 @@ export default function DebtsPage() {
 
   const formatVND = (num) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
-  };
-
-  const isOverdue = (debt) => {
-    if (debt.status !== 'pending' || !debt.dueDate) return false;
-    const today = new Date().toISOString().substring(0, 10);
-    return debt.dueDate < today;
   };
 
   // Filtered people for view
@@ -529,32 +528,35 @@ export default function DebtsPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '13%' }}>Ngày vay / Cho vay</th>
-                    <th style={{ width: '14%' }}>Loại giao dịch</th>
+                    <th style={{ width: '13%' }}>Ngày tạo</th>
+                    <th style={{ width: '13%' }}>Loại giao dịch</th>
                     <th style={{ width: '18%' }}>Người vay / Cho vay</th>
                     <th style={{ width: '15%', textAlign: 'right' }}>Số tiền</th>
-                    <th style={{ width: '15%' }}>Ngày hẹn trả</th>
-                    <th style={{ width: '13%' }}>Trạng thái</th>
+                    <th style={{ width: '14%' }}>Ngày vay / Cho vay</th>
+                    <th style={{ width: '15%' }}>Ngày trả / Trạng thái</th>
                     <th style={{ width: '12%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {debts.map((d) => {
-                    const overdue = isOverdue(d);
-                    const displayDebtDate = d.debtDate || (d.createdAt ? d.createdAt.substring(0, 10) : '---');
+                    const displayCreatedDate = d.createdAt ? d.createdAt.substring(0, 10) : '---';
+                    const displayDebtDate = d.debtDate || d.dueDate || displayCreatedDate;
+                    const isSettled = d.status === 'settled';
                     
                     return (
                       <tr key={d.id} style={{ 
-                        opacity: d.status === 'settled' ? 0.65 : 1,
-                        backgroundColor: overdue ? 'rgba(255, 71, 87, 0.03)' : 'transparent',
+                        opacity: isSettled ? 0.65 : 1,
                         transition: 'background-color 0.2s' 
                       }}>
+                        {/* Cột 1: Ngày tạo */}
                         <td>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <Calendar size={12} style={{ color: 'var(--text-muted)' }} />
-                            {displayDebtDate}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                            <Calendar size={12} style={{ opacity: 0.6 }} />
+                            {displayCreatedDate}
                           </span>
                         </td>
+
+                        {/* Cột 2: Loại giao dịch */}
                         <td>
                           <span style={{ 
                             display: 'inline-flex', 
@@ -568,6 +570,8 @@ export default function DebtsPage() {
                             {d.type === 'loan' ? 'Tôi cho vay' : 'Tôi đi vay'}
                           </span>
                         </td>
+
+                        {/* Cột 3: Người vay / Cho vay */}
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
@@ -584,6 +588,8 @@ export default function DebtsPage() {
                             )}
                           </div>
                         </td>
+
+                        {/* Cột 4: Số tiền */}
                         <td style={{ 
                           textAlign: 'right', 
                           fontWeight: 'bold',
@@ -591,52 +597,47 @@ export default function DebtsPage() {
                         }}>
                           {formatVND(d.amount)}
                         </td>
+
+                        {/* Cột 5: Ngày vay / Cho vay */}
                         <td>
-                          {d.dueDate ? (
-                            <span style={{ 
-                              display: 'inline-flex', 
-                              alignItems: 'center', 
-                              gap: 4, 
-                              color: overdue ? 'var(--accent-danger)' : 'var(--text-secondary)',
-                              fontWeight: overdue ? 'bold' : 'normal' 
-                            }}>
-                              <Calendar size={12} />
-                              {d.dueDate}
-                              {overdue && <AlertCircle size={12} title="Quá hạn trả nợ!" />}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Không kỳ hạn</span>
-                          )}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: '0.85rem' }}>
+                            <Calendar size={12} style={{ color: 'var(--accent-primary)' }} />
+                            {displayDebtDate}
+                          </span>
                         </td>
+
+                        {/* Cột 6: Ngày trả / Trạng thái */}
                         <td>
                           <button 
                             className="btn btn-ghost" 
                             style={{ 
-                              padding: '2px 8px', 
+                              padding: '3px 8px', 
                               borderRadius: 12, 
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: 'bold',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 4,
-                              background: d.status === 'settled' ? 'rgba(46, 213, 115, 0.15)' : 'rgba(255, 71, 87, 0.15)',
-                              color: d.status === 'settled' ? 'var(--accent-success)' : 'var(--accent-danger)',
+                              background: isSettled ? 'rgba(46, 213, 115, 0.15)' : 'rgba(255, 71, 87, 0.15)',
+                              color: isSettled ? 'var(--accent-success)' : 'var(--accent-danger)',
                               border: '1px solid transparent'
                             }}
                             onClick={() => handleQuickToggleStatus(d)}
-                            title="Click để đổi trạng thái"
+                            title="Click để đổi trạng thái thanh toán"
                           >
-                            {d.status === 'settled' ? (
+                            {isSettled ? (
                               <>
-                                <CheckCircle2 size={10} /> Đã trả
+                                <CheckCircle2 size={11} /> {d.settledAt ? `Đã trả (${d.settledAt})` : 'Đã trả'}
                               </>
                             ) : (
                               <>
-                                <AlertCircle size={10} /> Chưa trả
+                                <AlertCircle size={11} /> Chưa trả
                               </>
                             )}
                           </button>
                         </td>
+
+                        {/* Cột 7: Thao tác */}
                         <td>
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                             <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleOpenEditDebt(d)} title="Sửa">
@@ -745,23 +746,12 @@ export default function DebtsPage() {
                 />
               </div>
 
-              {/* Due Date -> Ngày hẹn trả nợ */}
-              <div className="form-group">
-                <label className="form-label">Ngày hẹn trả nợ (Không bắt buộc)</label>
-                <input 
-                  type="date" 
-                  className="form-input" 
-                  value={debtFormData.dueDate}
-                  onChange={(e) => setDebtFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-                />
-              </div>
-
               {/* Description */}
               <div className="form-group">
                 <label className="form-label">Lý do / Ghi chú</label>
                 <textarea 
                   className="form-textarea" 
-                  placeholder="Ví dụ: Vay tiền đóng học, Cho mượn mua sắm..."
+                  placeholder="Ví dụ: Mua chăn, Thay dầu xe, Lắp biển..."
                   value={debtFormData.description}
                   onChange={(e) => setDebtFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
@@ -946,49 +936,52 @@ export default function DebtsPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {selectedPersonGroup.debts.map((d) => (
-                    <div 
-                      key={d.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--border-color)',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--border-radius-sm)'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{formatVND(d.amount)}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          Ngày {selectedPersonGroup.type === 'loan' ? 'cho vay' : 'vay'}: {d.debtDate || (d.createdAt ? d.createdAt.substring(0, 10) : '---')} {d.dueDate ? `• Hạn trả: ${d.dueDate}` : ''}
+                  {selectedPersonGroup.debts.map((d) => {
+                    const itemDebtDate = d.debtDate || d.dueDate || (d.createdAt ? d.createdAt.substring(0, 10) : '---');
+                    return (
+                      <div 
+                        key={d.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid var(--border-color)',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--border-radius-sm)'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{formatVND(d.amount)}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            Ngày {selectedPersonGroup.type === 'loan' ? 'cho vay' : 'vay'}: {itemDebtDate}
+                          </div>
+                          {d.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{d.description}</div>}
                         </div>
-                        {d.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{d.description}</div>}
-                      </div>
 
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button 
-                          className="btn btn-ghost btn-icon btn-sm" 
-                          onClick={() => {
-                            setShowHistoryModal(false);
-                            handleOpenEditDebt(d);
-                          }}
-                          title="Sửa"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button 
-                          className="btn btn-ghost btn-icon btn-sm" 
-                          style={{ color: 'var(--accent-danger)' }}
-                          onClick={() => handleDeleteDebt(d.id)}
-                          title="Xóa"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button 
+                            className="btn btn-ghost btn-icon btn-sm" 
+                            onClick={() => {
+                              setShowHistoryModal(false);
+                              handleOpenEditDebt(d);
+                            }}
+                            title="Sửa"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button 
+                            className="btn btn-ghost btn-icon btn-sm" 
+                            style={{ color: 'var(--accent-danger)' }}
+                            onClick={() => handleDeleteDebt(d.id)}
+                            title="Xóa"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
