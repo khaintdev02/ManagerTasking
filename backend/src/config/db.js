@@ -83,6 +83,7 @@ async function getDb() {
         person TEXT NOT NULL,
         amount REAL NOT NULL,
         description TEXT,
+        debtDate TEXT,
         dueDate TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
         settledAt TEXT,
@@ -91,6 +92,13 @@ async function getDb() {
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    try {
+      await run(`ALTER TABLE debts ADD COLUMN debtDate TEXT`);
+      console.log('[DB] Added debtDate column to debts table (Postgres)');
+    } catch (e) {
+      // Ignore if column already exists
+    }
 
     await run(`
       CREATE TABLE IF NOT EXISTS debt_payments (
@@ -226,6 +234,7 @@ async function getDb() {
         person TEXT NOT NULL,
         amount REAL NOT NULL,
         description TEXT,
+        debtDate TEXT,
         dueDate TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
         settledAt TEXT,
@@ -235,6 +244,13 @@ async function getDb() {
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
+
+    try {
+      db.run(`ALTER TABLE debts ADD COLUMN debtDate TEXT`);
+      console.log('[DB] Added debtDate column to debts table (SQLite)');
+    } catch (e) {
+      // Ignore if column already exists
+    }
 
     db.run(`
       CREATE TABLE IF NOT EXISTS debt_payments (
@@ -338,6 +354,7 @@ function normalizeKeys(row) {
   if ('useremail' in mapped) { mapped.userEmail = mapped.useremail; delete mapped.useremail; }
   if ('paymentmethod' in mapped) { mapped.paymentMethod = mapped.paymentmethod; delete mapped.paymentmethod; }
   if ('duedate' in mapped) { mapped.dueDate = mapped.duedate; delete mapped.duedate; }
+  if ('debtdate' in mapped) { mapped.debtDate = mapped.debtdate; delete mapped.debtdate; }
   if ('settledat' in mapped) { mapped.settledAt = mapped.settledat; delete mapped.settledat; }
   if ('paymentdate' in mapped) { mapped.paymentDate = mapped.paymentdate; delete mapped.paymentdate; }
   if ('debtid' in mapped) { mapped.debtId = mapped.debtid; delete mapped.debtid; }

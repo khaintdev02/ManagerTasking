@@ -28,6 +28,7 @@ export default function DebtsPage() {
     type: 'loan',
     person: '',
     amount: '',
+    debtDate: new Date().toISOString().substring(0, 10),
     dueDate: '',
     description: '',
     status: 'pending'
@@ -87,6 +88,7 @@ export default function DebtsPage() {
       type: prefill.type || 'loan',
       person: prefill.person || '',
       amount: '',
+      debtDate: prefill.debtDate || new Date().toISOString().substring(0, 10),
       dueDate: '',
       description: '',
       status: 'pending'
@@ -101,6 +103,7 @@ export default function DebtsPage() {
       type: d.type,
       person: d.person,
       amount: d.amount.toString(),
+      debtDate: d.debtDate || (d.createdAt ? d.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10)),
       dueDate: d.dueDate || '',
       description: d.description || '',
       status: d.status
@@ -526,11 +529,11 @@ export default function DebtsPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '12%' }}>Ngày tạo</th>
-                    <th style={{ width: '15%' }}>Loại giao dịch</th>
+                    <th style={{ width: '13%' }}>Ngày vay / Cho vay</th>
+                    <th style={{ width: '14%' }}>Loại giao dịch</th>
                     <th style={{ width: '18%' }}>Người vay / Cho vay</th>
                     <th style={{ width: '15%', textAlign: 'right' }}>Số tiền</th>
-                    <th style={{ width: '15%' }}>Ngày trả nợ</th>
+                    <th style={{ width: '15%' }}>Ngày hẹn trả</th>
                     <th style={{ width: '13%' }}>Trạng thái</th>
                     <th style={{ width: '12%', textAlign: 'center' }}>Thao tác</th>
                   </tr>
@@ -538,6 +541,7 @@ export default function DebtsPage() {
                 <tbody>
                   {debts.map((d) => {
                     const overdue = isOverdue(d);
+                    const displayDebtDate = d.debtDate || (d.createdAt ? d.createdAt.substring(0, 10) : '---');
                     
                     return (
                       <tr key={d.id} style={{ 
@@ -545,7 +549,12 @@ export default function DebtsPage() {
                         backgroundColor: overdue ? 'rgba(255, 71, 87, 0.03)' : 'transparent',
                         transition: 'background-color 0.2s' 
                       }}>
-                        <td>{d.createdAt ? d.createdAt.substring(0, 10) : '---'}</td>
+                        <td>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Calendar size={12} style={{ color: 'var(--text-muted)' }} />
+                            {displayDebtDate}
+                          </span>
+                        </td>
                         <td>
                           <span style={{ 
                             display: 'inline-flex', 
@@ -722,9 +731,23 @@ export default function DebtsPage() {
                 />
               </div>
 
-              {/* Due Date -> Ngày trả nợ */}
+              {/* Debt Date -> Ngày cho vay / Ngày vay */}
               <div className="form-group">
-                <label className="form-label">Ngày trả nợ (Không bắt buộc)</label>
+                <label className="form-label">
+                  {debtFormData.type === 'loan' ? 'Ngày cho vay *' : 'Ngày vay *'}
+                </label>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  required
+                  value={debtFormData.debtDate}
+                  onChange={(e) => setDebtFormData(prev => ({ ...prev, debtDate: e.target.value }))}
+                />
+              </div>
+
+              {/* Due Date -> Ngày hẹn trả nợ */}
+              <div className="form-group">
+                <label className="form-label">Ngày hẹn trả nợ (Không bắt buộc)</label>
                 <input 
                   type="date" 
                   className="form-input" 
@@ -939,7 +962,7 @@ export default function DebtsPage() {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{formatVND(d.amount)}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          Ngày tạo: {d.createdAt ? d.createdAt.substring(0, 10) : '---'} {d.dueDate ? `• Ngày trả nợ: ${d.dueDate}` : ''}
+                          Ngày {selectedPersonGroup.type === 'loan' ? 'cho vay' : 'vay'}: {d.debtDate || (d.createdAt ? d.createdAt.substring(0, 10) : '---')} {d.dueDate ? `• Hạn trả: ${d.dueDate}` : ''}
                         </div>
                         {d.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{d.description}</div>}
                       </div>

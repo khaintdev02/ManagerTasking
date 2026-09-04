@@ -56,6 +56,7 @@ function parseDebt(d) {
   return {
     ...d,
     amount: parseFloat(d.amount),
+    debtDate: d.debtDate || (d.createdAt instanceof Date ? d.createdAt.toISOString().substring(0, 10) : (d.createdAt ? String(d.createdAt).substring(0, 10) : null)),
     createdAt: d.createdAt instanceof Date ? d.createdAt.toISOString() : (d.createdAt ? String(d.createdAt) : null),
     updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : (d.updatedAt ? String(d.updatedAt) : null),
   };
@@ -414,7 +415,7 @@ router.delete('/payments/:id', async (req, res) => {
 // POST /api/debts - Add a new debt/loan
 router.post('/', async (req, res) => {
   try {
-    const { type, person, amount, description, dueDate, status } = req.body;
+    const { type, person, amount, description, debtDate, dueDate, status } = req.body;
     const userId = req.user.id;
 
     if (!type || !['debt', 'loan'].includes(type)) {
@@ -427,20 +428,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Amount must be a number greater than 0' });
     }
 
+    const initialDebtDate = debtDate || new Date().toISOString().substring(0, 10);
     const debtStatus = status || 'pending';
     const settledAt = debtStatus === 'settled' ? new Date().toISOString().substring(0, 10) : null;
 
     const insertSql = db.isPg ?
-      `INSERT INTO debts (type, person, amount, description, dueDate, status, settledAt, userId, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)` :
-      `INSERT INTO debts (type, person, amount, description, dueDate, status, settledAt, userId, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`;
+      `INSERT INTO debts (type, person, amount, description, debtDate, dueDate, status, settledAt, userId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)` :
+      `INSERT INTO debts (type, person, amount, description, debtDate, dueDate, status, settledAt, userId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`;
 
     await db.run(insertSql, [
       type,
       person.trim(),
       parseFloat(amount),
       description || null,
+      initialDebtDate,
       dueDate || null,
       debtStatus,
       settledAt,
@@ -465,12 +468,13 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Debt record not found' });
     }
 
-    const { type, person, amount, description, dueDate, status } = req.body;
+    const { type, person, amount, description, debtDate, dueDate, status } = req.body;
 
     const newType = type || existing.type;
     const newPerson = person !== undefined ? person.trim() : existing.person;
     const newAmount = amount !== undefined ? parseFloat(amount) : existing.amount;
     const newDescription = description !== undefined ? description : existing.description;
+    const newDebtDate = debtDate !== undefined ? debtDate : (existing.debtDate || null);
     const newDueDate = dueDate !== undefined ? dueDate : existing.dueDate;
     const newStatus = status || existing.status;
 
@@ -493,10 +497,10 @@ router.put('/:id', async (req, res) => {
 
     const updateSql = db.isPg ?
       `UPDATE debts SET 
-        type = ?, person = ?, amount = ?, description = ?, dueDate = ?, status = ?, settledAt = ?, updatedAt = CURRENT_TIMESTAMP
+        type = ?, person = ?, amount = ?, description = ?, debtDate = ?, dueDate = ?, status = ?, settledAt = ?, updatedAt = CURRENT_TIMESTAMP
        WHERE id = ? AND userId = ?` :
       `UPDATE debts SET 
-        type = ?, person = ?, amount = ?, description = ?, dueDate = ?, status = ?, settledAt = ?, updatedAt = datetime('now')
+        type = ?, person = ?, amount = ?, description = ?, debtDate = ?, dueDate = ?, status = ?, settledAt = ?, updatedAt = datetime('now')
        WHERE id = ? AND userId = ?`;
 
     await db.run(updateSql, [
@@ -504,6 +508,7 @@ router.put('/:id', async (req, res) => {
       newPerson,
       newAmount,
       newDescription,
+      newDebtDate,
       newDueDate,
       newStatus,
       newSettledAt,
